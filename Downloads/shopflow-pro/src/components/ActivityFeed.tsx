@@ -13,7 +13,16 @@ export function ActivityFeed() {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.from("activity_logs").select("*").order("created_at", { ascending: false }).limit(20);
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+      const { data } = await supabase
+        .from("activity_logs")
+        .select("*")
+        .gte("created_at", start)
+        .lt("created_at", end)
+        .order("created_at", { ascending: false })
+        .limit(50);
       const arr = (data ?? []) as Log[];
       setLogs(arr);
       const ids = Array.from(new Set(arr.map((l) => l.employee_id).filter(Boolean))) as string[];
