@@ -47,6 +47,14 @@ const getCapacityFromName = (name: string) => {
 
 const getBottlePrice = (product: Product) => resolveUnitPrice(Number(product.price), product.discount_price);
 
+const getDisplayName = (product: Product) => {
+  const normalized = product.name.trim().toLowerCase();
+  if (normalized === "coca-cola original - 500ml" && Number(product.price) === 80) {
+    return "Coca-Cola Plastic Original - 500ml";
+  }
+  return product.name;
+};
+
 const buildCrateKey = (pricing: "retail" | "wholesale", mix: Array<{ product: Product; quantity: number }>, packSize: number) => {
   const parts = mix
     .slice()
@@ -250,7 +258,7 @@ function POS() {
       {lowStock.length > 0 && (
         <div className="bg-amber-100 dark:bg-amber-950/40 border-b border-amber-300/40 px-4 py-2 flex items-center gap-2 text-sm">
           <AlertTriangle className="h-4 w-4 text-amber-700" />
-          <span>{lowStock.length} product(s) low on stock: {lowStock.slice(0,3).map((p) => p.name).join(", ")}{lowStock.length > 3 ? "..." : ""}</span>
+          <span>{lowStock.length} product(s) low on stock: {lowStock.slice(0,3).map((p) => getDisplayName(p)).join(", ")}{lowStock.length > 3 ? "..." : ""}</span>
         </div>
       )}
 
@@ -280,7 +288,7 @@ function POS() {
               return (
                 <Card key={p.id} className={`p-3 transition ${out ? "opacity-50" : ""}`}>
                   <div className="flex justify-between items-start gap-1">
-                    <p className="font-medium text-sm leading-tight">{p.name}</p>
+                    <p className="font-medium text-sm leading-tight">{getDisplayName(p)}</p>
                     {low && <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">Low</Badge>}
                     {out && <Badge variant="destructive" className="text-xs">Out</Badge>}
                   </div>

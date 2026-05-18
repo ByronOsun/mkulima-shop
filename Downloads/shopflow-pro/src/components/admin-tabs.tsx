@@ -46,12 +46,21 @@ const buildDepotSku = (brand: string, variant: string, capacity: string) =>
 
 const normalizeProductName = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
 
+const applyDepotNameRules = (name: string, price: number) => {
+  const normalized = normalizeProductName(name);
+  if (normalized === "coca-cola original - 500ml" && price === 80) {
+    return "Coca-Cola Plastic Original - 500ml";
+  }
+  return name;
+};
+
 const parseDepotName = (name: string) => {
   const [left, capacity] = name.split(" - ");
   if (!left || !capacity) return null;
+  const normalizedLeft = left.startsWith("Coca-Cola Plastic ") ? left.replace("Coca-Cola Plastic ", "Coca-Cola ") : left;
   for (const entry of DEPOT_BRANDS) {
-    if (!left.startsWith(`${entry.brand} `)) continue;
-    const variant = left.slice(entry.brand.length + 1);
+    if (!normalizedLeft.startsWith(`${entry.brand} `)) continue;
+    const variant = normalizedLeft.slice(entry.brand.length + 1);
     if (entry.variants.includes(variant) || (entry.brand === "Minute Maid" && variant === "Mango Extra")) {
       return { brand: entry.brand, variant: variant === "Mango Extra" ? "Apple" : variant, capacity };
     }
@@ -106,13 +115,14 @@ export function ProductsTab({ shops, currentShopId }: { shops: Shop[]; currentSh
   const save = async () => {
     if (!editing?.name || editing.price == null) { toast.error("Name and price required"); return; }
     if (isDepot && packSize <= 0) { toast.error("Pack size must be greater than 0"); return; }
+    const normalizedName = isDepot ? applyDepotNameRules(editing.name!, Number(editing.price)) : editing.name!;
     const totalStock = isDepot
       ? depotCrates * packSize
       : Number(editing.stock_quantity ?? 0);
     const depotSku = isDepot ? buildDepotSku(depotBrand, depotVariant, depotCapacity) : "";
     const payload = {
       shop_id: currentShopId,
-      name: editing.name!,
+      name: normalizedName,
       sku: isDepot ? depotSku || ensureSku(editing) : ensureSku(editing),
       price: Number(editing.price),
       discount_price: editing.discount_price == null ? null : Number(editing.discount_price),
@@ -133,7 +143,7 @@ export function ProductsTab({ shops, currentShopId }: { shops: Shop[]; currentSh
             if (lookupError) return { error: lookupError };
 
             const existing = (existingProducts ?? []).find((p) =>
-              normalizeProductName(p.name) === normalizeProductName(editing.name!) || (depotSku && p.sku === depotSku)
+              normalizeProductName(p.name) === normalizeProductName(normalizedName) || (depotSku && p.sku === depotSku)
             );
 
             if (existing) {
