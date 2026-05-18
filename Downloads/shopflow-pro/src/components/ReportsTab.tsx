@@ -17,6 +17,11 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Shop = Tables<"shops">;
 type Txn = Tables<"transactions">;
+type TxnItem = Tables<"transaction_items">;
+
+type PdfRow = Txn & {
+  itemsSold: string;
+};
 
 export function ReportsTab({ shops }: { shops: Shop[] }) {
   const [shopId, setShopId] = useState<string>("all");
@@ -42,18 +47,41 @@ export function ReportsTab({ shops }: { shops: Shop[] }) {
   const total = rows.reduce((s, r) => s + Number(r.total_amount), 0);
   const byMode = rows.reduce<Record<string, number>>((acc, r) => { acc[r.payment_mode] = (acc[r.payment_mode] ?? 0) + Number(r.total_amount); return acc; }, {});
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     const doc = new jsPDF();
     const letterheadEndY = addPdfLetterhead(doc, {
       title: "Sales Report",
       subtitle: shopId === "all" ? "All shops" : shops.find((s) => s.id === shopId)?.name,
       contact: shops.find((s) => s.id === shopId)?.contact_info || "07 002 132 28",
     });
-    doc.setFontSize(10); doc.text(`From ${from} to ${to} · Total: ${fmtKES(total)}`, 14, letterheadEndY);
+    const { data: itemsData } = await supabase
+      .from("transaction_items")
+      .select("transaction_id, name_snapshot, quantity")
+      .in("transaction_id", rows.map((r) => r.id));
+
+    const itemsByTxn = (itemsData ?? []).reduce<Record<string, string[]>>((acc, item) => {
+      const typed = item as Pick<TxnItem, "transaction_id" | "name_snapshot" | "quantity">;
+      const label = `${typed.name_snapshot} x${typed.quantity}`;
+      acc[typed.transaction_id] = acc[typed.transaction_id] ?? [];
+      acc[typed.transaction_id].push(label);
+      return acc;
+    }, {});
+
+    const pdfRows: PdfRow[] = rows.map((r) => ({
+      ...r,
+      itemsSold: (itemsByTxn[r.id] ?? []).join("; ") || "—",
+    }));
+
+    doc.setFontSize(10);
+    doc.text(`From ${from} to ${to}`, 14, letterheadEndY);
+    doc.text(`Total: ${fmtKES(total)}`, 14, letterheadEndY + 6);
+    doc.text(`Cash: ${fmtKES(byMode.cash ?? 0)} · M-Pesa: ${fmtKES(byMode.mpesa ?? 0)} · ATM: ${fmtKES(byMode.atm ?? 0)}`, 14, letterheadEndY + 12);
     autoTable(doc, {
-      startY: letterheadEndY + 6,
-      head: [["Date", "Shop", "Employee", "Method", "Customer", "Total"]],
-      body: rows.map((r) => [new Date(r.created_at).toLocaleString(), r.shop!, r.employee!, r.payment_mode, r.customer_name ?? "—", Number(r.total_amount).toFixed(2)]),
+      startY: letterheadEndY + 20,
+      head: [["Date", "Method", "Customer", "Itemized Items Sold", "Total"]],
+      body: pdfRows.map((r) => [new Date(r.created_at).toLocaleString(), r.payment_mode, r.customer_name ?? "—", r.itemsSold, Number(r.total_amount).toFixed(2)]),
+      styles: { fontSize: 8, cellPadding: 2, overflow: "linebreak" },
+      headStyles: { fillColor: [30, 41, 59] },
     });
     doc.save(`sales-${from}-to-${to}.pdf`);
   };
