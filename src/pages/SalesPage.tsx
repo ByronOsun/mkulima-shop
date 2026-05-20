@@ -1,0 +1,137 @@
+import { useState, useEffect } from 'react';
+import { Sale } from '../types';
+import { supabaseService } from '../services/supabase';
+import '../styles/SalesPage.css';
+
+export default function SalesPage() {
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  useEffect(() => {
+    loadSales();
+  }, [selectedDate]);
+
+  const loadSales = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await supabaseService.getSalesForDate(selectedDate);
+      setSales(data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load sales');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalRevenue = sales.reduce((sum, sale) => sum + sale.total_amount, 0);
+  const paymentMethods = sales.reduce((acc, sale) => {
+    acc[sale.payment_method] = (acc[sale.payment_method] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  if (loading) return <div className="page-loader">Loading sales...</div>;
+
+  return (
+    <div className="sales-page">
+      <div className="sales-header">
+        <h2>Sales Transactions</h2>
+        <div className="date-selector">
+          <label>Select Date:</label>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+            className="date-input"
+          />
+        </div>
+      </div>
+
+      <div className="sales-summary">
+        <div className="summary-card">
+          <span className="summary-label">Total Transactions</span>
+          <span className="summary-value">{sales.length}</span>
+        </div>
+        <div className="summary-card highlight">
+          <span className="summary-label">Total Revenue</span>
+          <span className="summary-value">
+            {new Intl.NumberFormat('en-KE', {
+              style: 'currency',
+              currency: 'KES',
+            }).format(totalRevenue)}
+          </span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Average Transaction</span>
+          <span className="summary-value">
+            {sales.length > 0
+              ? new Intl.NumberFormat('en-KE', {
+                  style: 'currency',
+                  currency: 'KES',
+                }).format(totalRevenue / sales.length)
+              : 'N/A'}
+          </span>
+        </div>
+      </div>
+
+      {error && <div className="error-message">{error}</div>}
+
+      <div className="payment-breakdown">
+        <h3>Payment Methods</h3>
+        <div className="payment-stats">
+          {Object.entries(paymentMethods).map(([method, count]) => (
+            <div key={method} className="payment-stat">
+              <span className="method-name">{method}</span>
+              <span className="method-count">{count} transactions</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="sales-table">
+        <h3>Sales Transactions</h3>
+        {sales.length === 0 ? (
+          <p className="no-data">No sales found for this date</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Sale ID</th>
+                <th>Items</th>
+                <th>Total Amount</th>
+                <th>Payment Method</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sales.map(sale => (
+                <tr key={sale.id}>
+                  <td>
+                    {new Date(sale.sale_date).toLocaleTimeString()}
+                  </td>
+                  <td className="sale-id">{sale.id.substring(0, 8)}...</td>
+                  <td>{sale.items?.length || 0} items</td>
+                  <td className="amount">
+                    {new Intl.NumberFormat('en-KE', {
+                      style: 'currency',
+                      currency: 'KES',
+                    }).format(sale.total_amount)}
+                  </td>
+                  <td>{sale.payment_method}</td>
+                  <td>
+                    <span className={`status-badge ${sale.status}`}>
+                      {sale.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}

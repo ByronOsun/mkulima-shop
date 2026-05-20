@@ -1,0 +1,612 @@
+import { createClient } from '@supabase/supabase-js';
+import type {
+  Category,
+  DaySalesReport,
+  Product,
+  Sale,
+  SaleItem,
+  StockMovement,
+} from '../types';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase =
+  supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+type DemoSaleInput = Pick<Sale, 'sale_date' | 'total_amount' | 'payment_method' | 'status'>;
+type DemoSaleItemInput = Omit<SaleItem, 'id' | 'created_at'>;
+type DemoStockMovementInput = Omit<StockMovement, 'id' | 'created_at'>;
+type DemoProductInput = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
+
+interface DemoState {
+  products: Product[];
+  categories: Category[];
+  sales: Sale[];
+  saleItems: SaleItem[];
+  stockMovements: StockMovement[];
+}
+
+const STORAGE_KEY = 'mkulima-demo-backend';
+
+const demoCategories: Category[] = [
+  {
+    id: 'cat-feed',
+    name: 'Feeds',
+    description: 'Animal feed and nutrition',
+    created_at: '2026-05-20T00:00:00.000Z',
+  },
+  {
+    id: 'cat-health',
+    name: 'Animal Health',
+    description: 'Veterinary medicines and supplements',
+    created_at: '2026-05-20T00:00:00.000Z',
+  },
+  {
+    id: 'cat-seed',
+    name: 'Seeds & Inputs',
+    description: 'Seeds, fertilizers, and crop inputs',
+    created_at: '2026-05-20T00:00:00.000Z',
+  },
+  {
+    id: 'cat-tools',
+    name: 'Tools',
+    description: 'Farm tools and equipment',
+    created_at: '2026-05-20T00:00:00.000Z',
+  },
+];
+
+const demoProducts: Product[] = [
+  {
+    id: 'prd-1',
+    name: 'Dairy Meal 50kg',
+    category: 'Feeds',
+    sku: 'FEE-001',
+    description: 'High-energy dairy feed for milk production',
+    unit_price: 3200,
+    quantity_in_stock: 24,
+    reorder_level: 8,
+    image_url: '',
+    created_at: '2026-05-20T00:00:00.000Z',
+    updated_at: '2026-05-20T00:00:00.000Z',
+  },
+  {
+    id: 'prd-2',
+    name: 'Broiler Starter 50kg',
+    category: 'Feeds',
+    sku: 'FEE-002',
+    description: 'Starter mash for poultry broilers',
+    unit_price: 4100,
+    quantity_in_stock: 17,
+    reorder_level: 6,
+    image_url: '',
+    created_at: '2026-05-20T00:00:00.000Z',
+    updated_at: '2026-05-20T00:00:00.000Z',
+  },
+  {
+    id: 'prd-3',
+    name: 'Acaricide Spray 1L',
+    category: 'Animal Health',
+    sku: 'HLT-101',
+    description: 'Tick and mite control spray',
+    unit_price: 950,
+    quantity_in_stock: 32,
+    reorder_level: 12,
+    image_url: '',
+    created_at: '2026-05-20T00:00:00.000Z',
+    updated_at: '2026-05-20T00:00:00.000Z',
+  },
+  {
+    id: 'prd-4',
+    name: 'Maize Seed 10kg',
+    category: 'Seeds & Inputs',
+    sku: 'SEED-210',
+    description: 'Certified maize seed for planting',
+    unit_price: 1800,
+    quantity_in_stock: 28,
+    reorder_level: 10,
+    image_url: '',
+    created_at: '2026-05-20T00:00:00.000Z',
+    updated_at: '2026-05-20T00:00:00.000Z',
+  },
+  {
+    id: 'prd-5',
+    name: 'Jembe Hoe',
+    category: 'Tools',
+    sku: 'TL-450',
+    description: 'Heavy-duty digging hoe',
+    unit_price: 1250,
+    quantity_in_stock: 9,
+    reorder_level: 4,
+    image_url: '',
+    created_at: '2026-05-20T00:00:00.000Z',
+    updated_at: '2026-05-20T00:00:00.000Z',
+  },
+];
+
+const createSeedState = (): DemoState => ({
+  products: demoProducts,
+  categories: demoCategories,
+  sales: [],
+  saleItems: [],
+  stockMovements: [],
+});
+
+let demoState = createSeedState();
+
+const canUseStorage = () => typeof window !== 'undefined' && 'localStorage' in window;
+
+const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+const loadDemoState = () => {
+  if (!canUseStorage()) {
+    return demoState;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(demoState));
+      return demoState;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<DemoState>;
+    demoState = {
+      products: parsed.products?.length ? parsed.products : createSeedState().products,
+      categories: parsed.categories?.length ? parsed.categories : createSeedState().categories,
+      sales: parsed.sales ?? [],
+      saleItems: parsed.saleItems ?? [],
+      stockMovements: parsed.stockMovements ?? [],
+    };
+    return demoState;
+  } catch {
+    demoState = createSeedState();
+    return demoState;
+  }
+};
+
+const saveDemoState = () => {
+  if (canUseStorage()) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(demoState));
+  }
+};
+
+const generateId = (prefix: string) => {
+  const randomPart = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}-${randomPart}`;
+};
+
+const syncProductStock = (productId: string, newQuantity: number) => {
+  const state = loadDemoState();
+  const productIndex = state.products.findIndex(product => product.id === productId);
+  if (productIndex === -1) {
+    return null;
+  }
+
+  const updated = {
+    ...state.products[productIndex],
+    quantity_in_stock: newQuantity,
+    updated_at: new Date().toISOString(),
+  };
+
+  state.products[productIndex] = updated;
+  saveDemoState();
+  return updated;
+};
+
+const buildReport = (
+  sales: Sale[],
+  saleItems: SaleItem[],
+  products: Product[]
+): DaySalesReport => {
+  const payment_breakdown = {
+    cash: 0,
+    card: 0,
+    mobile_money: 0,
+    credit: 0,
+  };
+
+  const productTotals = new Map<string, { product: Product; quantity: number }>();
+
+  for (const sale of sales) {
+    payment_breakdown[sale.payment_method] += sale.total_amount;
+  }
+
+  for (const item of saleItems) {
+    const existing = productTotals.get(item.product_id);
+    const product = products.find(candidate => candidate.id === item.product_id);
+    if (!product) {
+      continue;
+    }
+
+    productTotals.set(item.product_id, {
+      product,
+      quantity: (existing?.quantity ?? 0) + item.quantity,
+    });
+  }
+
+  return {
+    total_sales: sales.length,
+    total_revenue: sales.reduce((sum, sale) => sum + sale.total_amount, 0),
+    transactions_count: sales.length,
+    payment_breakdown,
+    top_products: Array.from(productTotals.values())
+      .sort((left, right) => right.quantity - left.quantity)
+      .slice(0, 5)
+      .map(entry => entry.product),
+  };
+};
+
+export const supabaseService = {
+  async getProducts(): Promise<Product[]> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('products').select('*').order('name');
+        if (!error && data) {
+          return data as Product[];
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    return clone(loadDemoState().products);
+  },
+
+  async getProductById(id: string): Promise<Product> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+        if (!error && data) {
+          return data as Product;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const product = loadDemoState().products.find(item => item.id === id);
+    if (!product) {
+      throw new Error('Product not found');
+    }
+    return clone(product);
+  },
+
+  async getProductsByCategory(category: string): Promise<Product[]> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('category', category)
+          .order('name');
+        if (!error && data) {
+          return data as Product[];
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    return clone(loadDemoState().products.filter(product => product.category === category));
+  },
+
+  async updateProductStock(productId: string, newQuantity: number): Promise<Product | null> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .update({ quantity_in_stock: newQuantity })
+          .eq('id', productId)
+          .select('*')
+          .single();
+        if (!error && data) {
+          return data as Product;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    return syncProductStock(productId, newQuantity);
+  },
+
+  async createSale(saleData: DemoSaleInput): Promise<Sale> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('sales').insert([saleData]).select().single();
+        if (!error && data) {
+          return data as Sale;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const now = new Date().toISOString();
+    const sale: Sale = {
+      id: generateId('sale'),
+      ...saleData,
+      items: [],
+      created_at: now,
+      updated_at: now,
+    };
+
+    state.sales.unshift(sale);
+    saveDemoState();
+    return clone(sale);
+  },
+
+  async createSaleItems(items: DemoSaleItemInput[]): Promise<SaleItem[]> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('sale_items').insert(items).select();
+        if (!error && data) {
+          return data as SaleItem[];
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const now = new Date().toISOString();
+    const saleItems = items.map(item => ({
+      ...item,
+      id: generateId('sale-item'),
+      created_at: now,
+    }));
+
+    state.saleItems.unshift(...saleItems);
+    saveDemoState();
+    return clone(saleItems);
+  },
+
+  async getSaleById(id: string): Promise<Sale> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('sales').select('*, sale_items(*)').eq('id', id).single();
+        if (!error && data) {
+          return data as Sale;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const sale = state.sales.find(candidate => candidate.id === id);
+    if (!sale) {
+      throw new Error('Sale not found');
+    }
+
+    return clone({
+      ...sale,
+      items: [],
+    });
+  },
+
+  async getSalesForDate(date: string): Promise<Sale[]> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('sales')
+          .select('*')
+          .gte('sale_date', `${date}T00:00:00`)
+          .lt('sale_date', `${date}T23:59:59`)
+          .order('created_at', { ascending: false });
+        if (!error && data) {
+          return data as Sale[];
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const matchingSales = state.sales.filter(sale => sale.sale_date.startsWith(date));
+    return clone(
+      matchingSales.map(sale => ({
+        ...sale,
+        items: [],
+      }))
+    );
+  },
+
+  async getDaySalesReport(date: string): Promise<DaySalesReport> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.rpc('get_daily_sales_report', { report_date: date });
+        if (!error && data) {
+          return data as DaySalesReport;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const sales = state.sales
+      .filter(sale => sale.sale_date.startsWith(date))
+      .map(sale => ({
+        ...sale,
+        items: [],
+      }));
+    const saleIds = new Set(sales.map(sale => sale.id));
+    const relatedSaleItems = state.saleItems.filter(item => saleIds.has(item.sale_id));
+    return buildReport(sales, relatedSaleItems, state.products);
+  },
+
+  async getCategories(): Promise<Category[]> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('categories').select('*').order('name');
+        if (!error && data) {
+          return data as Category[];
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    return clone(loadDemoState().categories);
+  },
+
+  async addProduct(newProduct: DemoProductInput): Promise<Product> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .insert([newProduct])
+          .select()
+          .single();
+        if (!error && data) {
+          return data as Product;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const now = new Date().toISOString();
+    const product: Product = {
+      id: generateId('prd'),
+      ...newProduct,
+      created_at: now,
+      updated_at: now,
+    };
+
+    state.products.unshift(product);
+    saveDemoState();
+    return clone(product);
+  },
+
+  async recordStockMovement(movement: DemoStockMovementInput): Promise<StockMovement> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('stock_movements')
+          .insert([movement])
+          .select()
+          .single();
+        if (!error && data) {
+          return data as StockMovement;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const stockMovement: StockMovement = {
+      id: generateId('movement'),
+      ...movement,
+      created_at: new Date().toISOString(),
+    };
+
+    state.stockMovements.unshift(stockMovement);
+    saveDemoState();
+    return clone(stockMovement);
+  },
+
+  async getStockMovements(
+    productId?: string,
+    limit: number = 100,
+    offset: number = 0
+  ): Promise<StockMovement[]> {
+    if (supabase) {
+      try {
+        let query = supabase
+          .from('stock_movements')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (productId) {
+          query = query.eq('product_id', productId);
+        }
+
+        const { data, error } = await query;
+        if (!error && data) {
+          return data as StockMovement[];
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const filtered = productId
+      ? state.stockMovements.filter(movement => movement.product_id === productId)
+      : state.stockMovements;
+
+    return clone(filtered.slice(offset, offset + limit));
+  },
+
+  async updateProduct(productId: string, updates: Partial<Product>): Promise<Product> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', productId)
+          .select()
+          .single();
+        if (!error && data) {
+          return data as Product;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const productIndex = state.products.findIndex(p => p.id === productId);
+    if (productIndex === -1) {
+      throw new Error('Product not found');
+    }
+
+    const product = state.products[productIndex];
+    const updatedProduct: Product = {
+      ...product,
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+
+    state.products[productIndex] = updatedProduct;
+    saveDemoState();
+    return clone(updatedProduct);
+  },
+
+  async deleteProduct(productId: string): Promise<void> {
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('products')
+          .delete()
+          .eq('id', productId);
+        if (!error) {
+          return;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const productIndex = state.products.findIndex(p => p.id === productId);
+    if (productIndex === -1) {
+      throw new Error('Product not found');
+    }
+
+    state.products.splice(productIndex, 1);
+    saveDemoState();
+  },
+};

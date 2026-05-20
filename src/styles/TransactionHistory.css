@@ -1,0 +1,363 @@
+/* Transaction History Modal Styles */
+
+.transaction-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  padding: 1rem;
+}
+
+.transaction-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Header */
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.transaction-header h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  color: white;
+  font-weight: 700;
+}
+
+.transaction-date {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.transaction-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: white;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.transaction-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Stats */
+.transaction-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.stat-box {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 3px solid #667eea;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #333;
+}
+
+/* Payment Breakdown */
+.payment-breakdown {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.payment-breakdown h4 {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.breakdown-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.method-name {
+  font-size: 0.9rem;
+  color: #555;
+  font-weight: 600;
+}
+
+.method-amount {
+  font-weight: 700;
+  color: #667eea;
+}
+
+/* Transactions List */
+.transactions-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.transactions-list h4 {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.transaction-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.transaction-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.transaction-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.transaction-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  cursor: pointer;
+}
+
+.transaction-info {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.transaction-time {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.transaction-method {
+  background: #f3f4f6;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #555;
+  font-weight: 600;
+}
+
+.transaction-amount {
+  font-weight: 700;
+  color: #667eea;
+  font-size: 1.05rem;
+}
+
+.expand-icon {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+/* Transaction Details */
+.transaction-details {
+  padding: 1rem;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+
+.items-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.items-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.items-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.item-name {
+  color: #333;
+  font-weight: 500;
+}
+
+.item-qty,
+.item-price,
+.item-total {
+  text-align: right;
+}
+
+.item-price {
+  color: #888;
+}
+
+.item-total {
+  font-weight: 600;
+  color: #667eea;
+}
+
+/* Empty/Loading */
+.loading,
+.empty {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+  font-size: 0.95rem;
+}
+
+/* Footer */
+.transaction-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-close {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #333;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-close:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .transaction-modal-content {
+    max-height: 95vh;
+  }
+
+  .transaction-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .breakdown-items {
+    grid-template-columns: 1fr;
+  }
+
+  .items-header,
+  .items-row {
+    grid-template-columns: 1fr 1fr;
+    font-size: 0.8rem;
+  }
+
+  .item-price,
+  .item-total {
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .transaction-close {
+    width: 28px;
+    height: 28px;
+    font-size: 1.2rem;
+  }
+
+  .transaction-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .transaction-amount {
+    align-self: flex-end;
+  }
+}
