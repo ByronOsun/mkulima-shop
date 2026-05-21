@@ -174,11 +174,11 @@ export default function StockRequisitionPage() {
     doc.setFontSize(9);
     doc.text('Farm Supply & Distribution', margin, y);
     y += 4;
-    doc.text('Phone: +254 701 234 567', margin, y);
+    doc.text('Contact: 0722843544', margin, y);
     y += 4;
-    doc.text('Email: orders@mkulima.co.ke', margin, y);
+    doc.text('Off Kisumu Kakamega Road Kiboswa', margin, y);
     y += 4;
-    doc.text('Location: Nairobi, Kenya', margin, y);
+    doc.text('Kisumu Kenya', margin, y);
     y += 8;
 
     // Line separator
@@ -226,47 +226,28 @@ export default function StockRequisitionPage() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.text('Product', margin, y);
-      doc.text('Qty', margin + 90, y);
-      doc.text('Unit Price', margin + 120, y);
-      doc.text('Total', pageWidth - margin - 20, y, { align: 'right' });
+      doc.text('Qty', pageWidth - margin - 30, y, { align: 'right' });
       y += 4;
       doc.line(margin, y, pageWidth - margin, y);
       y += 5;
 
       // Products
       doc.setFont('helvetica', 'normal');
-      let categoryTotal = 0;
       for (const product of categoryProducts) {
         const qty = stagedItems[product.id] || 0;
-        const itemTotal = qty * product.unit_price;
-        categoryTotal += itemTotal;
-
         ensureSpace(10);
         doc.text(product.name, margin, y);
-        doc.text(String(qty), margin + 90, y, { align: 'right' });
-        doc.text(`KES ${product.unit_price.toFixed(2)}`, margin + 120, y, { align: 'right' });
-        doc.text(`KES ${itemTotal.toFixed(2)}`, pageWidth - margin - 20, y, { align: 'right' });
+        doc.text(String(qty), pageWidth - margin - 30, y, { align: 'right' });
         y += lineHeight;
       }
 
-      y += 2;
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Category Total: KES ${categoryTotal.toFixed(2)}`, pageWidth - margin - 20, y, {
-        align: 'right',
-      });
-      y += 8;
+      y += 6;
     }
 
-    // Grand total
+    // Closing line
     ensureSpace(12);
     y += 2;
     doc.line(margin, y, pageWidth - margin, y);
-    y += 5;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text(`GRAND TOTAL: KES ${totalStockValue.toFixed(2)}`, pageWidth - margin - 20, y, {
-      align: 'right',
-    });
 
     // Footer
     y = pageHeight - 16;
