@@ -66,8 +66,9 @@ export default function CreditSalesPage() {
       return;
     }
 
-    if (amount > selectedSale.total_amount) {
-      setError('Payment cannot exceed total amount');
+    const currentBalance = selectedSale.total_amount - (selectedSale.amount_paid || 0);
+    if (amount > currentBalance) {
+      setError(`Payment cannot exceed remaining balance of ${formatCurrency(currentBalance)}`);
       return;
     }
 
@@ -85,14 +86,21 @@ export default function CreditSalesPage() {
         updated_at: new Date().toISOString(),
       });
 
-      setMessage(
-        isFullyPaid
-          ? `Bill cleared successfully! Payment of ${formatCurrency(amount)} received.`
-          : `Payment of ${formatCurrency(amount)} recorded. Remaining: ${formatCurrency(selectedSale.total_amount - amountPaid)}`
-      );
+      const successMessage = isFullyPaid
+        ? `Bill cleared successfully! Payment of ${formatCurrency(amount)} received.`
+        : `Payment of ${formatCurrency(amount)} recorded. Remaining: ${formatCurrency(selectedSale.total_amount - amountPaid)}`;
+
+      setMessage(successMessage);
+
+      // Update the selected sale with new payment info
+      setSelectedSale({
+        ...selectedSale,
+        amount_paid: amountPaid,
+        status: isFullyPaid ? 'completed' : 'pending',
+        updated_at: new Date().toISOString(),
+      });
 
       setPaymentAmount('');
-      setSelectedSale(null);
       await loadCreditSales();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process payment');
@@ -225,47 +233,55 @@ export default function CreditSalesPage() {
             <>
               <h3>Bill Details</h3>
               <div className="bill-details">
-                <div className="detail-row">
-                  <span className="detail-label">Date:</span>
-                  <span className="detail-value">{formatDate(selectedSale.sale_date)}</span>
-                </div>
-
-                {selectedSale.customer_name && (
-                  <>
-                    <div className="detail-row">
-                      <span className="detail-label">Customer Name:</span>
-                      <span className="detail-value">{selectedSale.customer_name}</span>
-                    </div>
-                    {selectedSale.customer_contact && (
+                <div className="customer-section">
+                  <h4>Customer Information</h4>
+                  {selectedSale.customer_name ? (
+                    <div className="customer-details">
                       <div className="detail-row">
-                        <span className="detail-label">Contact:</span>
-                        <span className="detail-value">{selectedSale.customer_contact}</span>
+                        <span className="detail-label">Customer Name:</span>
+                        <span className="detail-value">{selectedSale.customer_name}</span>
                       </div>
-                    )}
-                  </>
-                )}
-
-                <div className="detail-row">
-                  <span className="detail-label">Total Amount:</span>
-                  <span className="detail-value amount">
-                    {formatCurrency(selectedSale.total_amount)}
-                  </span>
+                      {selectedSale.customer_contact && (
+                        <div className="detail-row">
+                          <span className="detail-label">Contact:</span>
+                          <span className="detail-value">{selectedSale.customer_contact}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="no-customer">No customer details recorded</p>
+                  )}
                 </div>
 
-                {selectedSale.amount_paid && selectedSale.amount_paid > 0 && (
+                <div className="transaction-section">
+                  <h4>Transaction Summary</h4>
                   <div className="detail-row">
-                    <span className="detail-label">Amount Paid:</span>
-                    <span className="detail-value paid">
-                      {formatCurrency(selectedSale.amount_paid)}
+                    <span className="detail-label">Date & Time:</span>
+                    <span className="detail-value">{formatDate(selectedSale.sale_date)}</span>
+                  </div>
+
+                  <div className="detail-row">
+                    <span className="detail-label">Original Amount:</span>
+                    <span className="detail-value amount">
+                      {formatCurrency(selectedSale.total_amount)}
                     </span>
                   </div>
-                )}
 
-                <div className="detail-row balance-row">
-                  <span className="detail-label">Remaining Balance:</span>
-                  <span className="detail-value balance">
-                    {formatCurrency(selectedSale.total_amount - (selectedSale.amount_paid || 0))}
-                  </span>
+                  {selectedSale.amount_paid && selectedSale.amount_paid > 0 && (
+                    <div className="detail-row">
+                      <span className="detail-label">Amount Already Paid:</span>
+                      <span className="detail-value paid">
+                        {formatCurrency(selectedSale.amount_paid)}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="detail-row balance-row">
+                    <span className="detail-label">Remaining Balance:</span>
+                    <span className="detail-value balance">
+                      {formatCurrency(selectedSale.total_amount - (selectedSale.amount_paid || 0))}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -290,14 +306,17 @@ export default function CreditSalesPage() {
               )}
 
               <div className="payment-section">
-                <input
-                  type="number"
-                  placeholder="Enter payment amount"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="payment-input"
-                  disabled={processingId === selectedSale.id}
-                />
+                <div className="payment-input-group">
+                  <label>Record Payment:</label>
+                  <input
+                    type="number"
+                    placeholder={`Max: ${formatCurrency(selectedSale.total_amount - (selectedSale.amount_paid || 0))}`}
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="payment-input"
+                    disabled={processingId === selectedSale.id}
+                  />
+                </div>
                 <button
                   className="btn btn-primary"
                   onClick={handlePayment}
