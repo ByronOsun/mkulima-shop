@@ -9,8 +9,9 @@ import ReportsPage from './pages/ReportsPage';
 import ReceiptPage from './pages/ReceiptPage';
 import { ReceiptData } from './types';
 
-type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'receipt';
+type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'stock-requisition' | 'receipt';
 
+import StockRequisitionPage from './pages/StockRequisitionPage';
 function AppContent() {
   const { user, logout, isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageType>('pos');
@@ -59,6 +60,8 @@ function AppContent() {
         return isAdmin ? <SalesPage /> : null;
       case 'reports':
         return isAdmin ? <ReportsPage /> : null;
+      case 'stock-requisition':
+        return isAdmin ? <StockRequisitionPage /> : null;
       case 'receipt':
         return <ReceiptPage receipt={receipt} onBackToPos={handleBackToPos} />;
       default:
@@ -122,6 +125,13 @@ function AppContent() {
                 <span className="nav-icon">📊</span>
                 <span className="nav-label">Reports</span>
               </button>
+                <button
+                  className={`nav-btn ${currentPage === 'stock-requisition' ? 'active' : ''}`}
+                  onClick={() => setCurrentPage('stock-requisition')}
+                >
+                  <span className="nav-icon">📋</span>
+                  <span className="nav-label">Stock</span>
+                </button>
             </>
           )}
         </nav>
