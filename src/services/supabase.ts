@@ -146,33 +146,11 @@ const canUseStorage = () => typeof window !== 'undefined' && 'localStorage' in w
 
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-const loadDemoState = () => {
-  if (!canUseStorage()) {
-    return demoState;
-  }
+const DEMO_DISABLED_MESSAGE =
+  'Demo mode is disabled. Configure Supabase correctly and ensure table permissions (RLS policies) allow this action.';
 
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(demoState));
-      return demoState;
-    }
-
-    const parsed = JSON.parse(raw) as Partial<DemoState>;
-    demoState = {
-      products: parsed.products?.length ? parsed.products : createSeedState().products,
-      categories: parsed.categories?.length ? parsed.categories : createSeedState().categories,
-      sales: parsed.sales ?? [],
-      saleItems: parsed.saleItems ?? [],
-      stockMovements: parsed.stockMovements ?? [],
-      financeExpenses: parsed.financeExpenses ?? [],
-      creditPayments: parsed.creditPayments ?? [],
-    };
-    return demoState;
-  } catch {
-    demoState = createSeedState();
-    return demoState;
-  }
+const loadDemoState = (): DemoState => {
+  throw new Error(DEMO_DISABLED_MESSAGE);
 };
 
 const saveDemoState = () => {
@@ -290,8 +268,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product[];
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -305,8 +283,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -328,8 +306,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product[];
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -348,8 +326,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -363,8 +341,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Sale;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -390,8 +368,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as SaleItem[];
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -435,8 +413,8 @@ export const supabaseService = {
             products
           )[0];
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -484,8 +462,8 @@ export const supabaseService = {
             products
           );
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -529,8 +507,8 @@ export const supabaseService = {
             products
           );
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -548,8 +526,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as DaySalesReport;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -572,8 +550,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Category[];
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -581,38 +559,55 @@ export const supabaseService = {
   },
 
   async getFinanceExpenses(startDate: string, endDate: string): Promise<FinanceExpense[]> {
-    const state = loadDemoState();
-    const filtered = state.financeExpenses.filter(expense => {
-      return expense.expense_date >= startDate && expense.expense_date <= endDate;
-    });
+    if (!supabase) {
+      throw new Error(DEMO_DISABLED_MESSAGE);
+    }
 
-    return clone(filtered.sort((left, right) => right.expense_date.localeCompare(left.expense_date)));
+    const { data, error } = await supabase
+      .from('finance_expenses')
+      .select('*')
+      .gte('expense_date', startDate)
+      .lte('expense_date', endDate)
+      .order('expense_date', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return (data || []) as FinanceExpense[];
   },
 
   async addFinanceExpense(expense: DemoFinanceExpenseInput): Promise<FinanceExpense> {
-    const state = loadDemoState();
-    const now = new Date().toISOString();
-    const newExpense: FinanceExpense = {
-      id: generateId('expense'),
-      ...expense,
-      created_at: now,
-      updated_at: now,
-    };
+    if (!supabase) {
+      throw new Error(DEMO_DISABLED_MESSAGE);
+    }
 
-    state.financeExpenses.unshift(newExpense);
-    saveDemoState();
-    return clone(newExpense);
+    const { data, error } = await supabase
+      .from('finance_expenses')
+      .insert([expense])
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message || 'Failed to add finance expense');
+    }
+
+    return data as FinanceExpense;
   },
 
   async deleteFinanceExpense(expenseId: string): Promise<void> {
-    const state = loadDemoState();
-    const index = state.financeExpenses.findIndex(expense => expense.id === expenseId);
-    if (index === -1) {
-      throw new Error('Expense not found');
+    if (!supabase) {
+      throw new Error(DEMO_DISABLED_MESSAGE);
     }
 
-    state.financeExpenses.splice(index, 1);
-    saveDemoState();
+    const { error } = await supabase
+      .from('finance_expenses')
+      .delete()
+      .eq('id', expenseId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
   },
 
   async addProduct(newProduct: DemoProductInput): Promise<Product> {
@@ -626,8 +621,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -656,8 +651,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as StockMovement;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -694,8 +689,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as StockMovement[];
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -722,8 +717,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -795,8 +790,8 @@ export const supabaseService = {
         }
 
         return updatedProduct as Product;
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -830,8 +825,8 @@ export const supabaseService = {
         if (!error) {
           return;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -857,8 +852,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Sale;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -896,8 +891,8 @@ export const supabaseService = {
         if (saleErr) throw saleErr;
 
         return { payment: data, sale: saleData as Sale };
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -943,8 +938,8 @@ export const supabaseService = {
         if (!error && data) {
           return data as Sale;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
@@ -969,8 +964,8 @@ export const supabaseService = {
         if (!error) {
           return;
         }
-      } catch {
-        // fall through to demo data
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
       }
     }
 
