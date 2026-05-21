@@ -6,12 +6,14 @@ import POSPage from './pages/POSPage';
 import InventoryPage from './pages/InventoryPage';
 import SalesPage from './pages/SalesPage';
 import ReportsPage from './pages/ReportsPage';
+import StockRequisitionPage from './pages/StockRequisitionPage';
+import FinancePage from './pages/FinancePage';
 import ReceiptPage from './pages/ReceiptPage';
+import HistoryPage from './pages/HistoryPage';
+import CreditSalesPage from './pages/CreditSalesPage';
 import { ReceiptData } from './types';
 
-type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'stock-requisition' | 'receipt';
-
-import StockRequisitionPage from './pages/StockRequisitionPage';
+type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'stock-requisition' | 'finance' | 'receipt' | 'history' | 'credit-sales';
 function AppContent() {
   const { user, logout, isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageType>('pos');
@@ -62,6 +64,12 @@ function AppContent() {
         return isAdmin ? <ReportsPage /> : null;
       case 'stock-requisition':
         return isAdmin ? <StockRequisitionPage /> : null;
+      case 'finance':
+        return isAdmin ? <FinancePage /> : null;
+      case 'history':
+        return <HistoryPage />;
+      case 'credit-sales':
+        return <CreditSalesPage />;
       case 'receipt':
         return <ReceiptPage receipt={receipt} onBackToPos={handleBackToPos} />;
       default:
@@ -125,6 +133,13 @@ function AppContent() {
                 <span className="nav-icon">📊</span>
                 <span className="nav-label">Reports</span>
               </button>
+              <button
+                className={`nav-btn ${currentPage === 'finance' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('finance')}
+              >
+                <span className="nav-icon">💰</span>
+                <span className="nav-label">Finance</span>
+              </button>
                 <button
                   className={`nav-btn ${currentPage === 'stock-requisition' ? 'active' : ''}`}
                   onClick={() => setCurrentPage('stock-requisition')}
@@ -132,6 +147,24 @@ function AppContent() {
                   <span className="nav-icon">📋</span>
                   <span className="nav-label">Stock</span>
                 </button>
+            </>
+          )}
+          {isCashier && (
+            <>
+              <button
+                className={`nav-btn ${currentPage === 'history' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('history')}
+              >
+                <span className="nav-icon">📜</span>
+                <span className="nav-label">History</span>
+              </button>
+              <button
+                className={`nav-btn ${currentPage === 'credit-sales' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('credit-sales')}
+              >
+                <span className="nav-icon">📑</span>
+                <span className="nav-label">Credit</span>
+              </button>
             </>
           )}
         </nav>

@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type {
   Category,
   DaySalesReport,
+  FinanceExpense,
   Product,
   Sale,
   SaleItem,
@@ -18,6 +19,7 @@ type DemoSaleInput = Pick<Sale, 'sale_date' | 'total_amount' | 'payment_method' 
 type DemoSaleItemInput = Omit<SaleItem, 'id' | 'created_at'>;
 type DemoStockMovementInput = Omit<StockMovement, 'id' | 'created_at'>;
 type DemoProductInput = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
+type DemoFinanceExpenseInput = Omit<FinanceExpense, 'id' | 'created_at' | 'updated_at'>;
 
 interface DemoState {
   products: Product[];
@@ -25,6 +27,7 @@ interface DemoState {
   sales: Sale[];
   saleItems: SaleItem[];
   stockMovements: StockMovement[];
+  financeExpenses: FinanceExpense[];
 }
 
 const STORAGE_KEY = 'mkulima-demo-backend';
@@ -130,6 +133,7 @@ const createSeedState = (): DemoState => ({
   sales: [],
   saleItems: [],
   stockMovements: [],
+  financeExpenses: [],
 });
 
 let demoState = createSeedState();
@@ -157,6 +161,7 @@ const loadDemoState = () => {
       sales: parsed.sales ?? [],
       saleItems: parsed.saleItems ?? [],
       stockMovements: parsed.stockMovements ?? [],
+      financeExpenses: parsed.financeExpenses ?? [],
     };
     return demoState;
   } catch {
@@ -237,6 +242,12 @@ const buildReport = (
       .slice(0, 5)
       .map(entry => entry.product),
   };
+};
+
+const filterSalesByDateRange = (sales: Sale[], startDate: string, endDate: string) => {
+  const start = `${startDate}T00:00:00`;
+  const end = `${endDate}T23:59:59`;
+  return sales.filter(sale => sale.sale_date >= start && sale.sale_date <= end);
 };
 
 export const supabaseService = {
@@ -416,6 +427,27 @@ export const supabaseService = {
     );
   },
 
+  async getSalesBetweenDates(startDate: string, endDate: string): Promise<Sale[]> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('sales')
+          .select('*')
+          .gte('sale_date', `${startDate}T00:00:00`)
+          .lte('sale_date', `${endDate}T23:59:59`)
+          .order('sale_date', { ascending: false });
+        if (!error && data) {
+          return data as Sale[];
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    return clone(filterSalesByDateRange(state.sales, startDate, endDate));
+  },
+
   async getDaySalesReport(date: string): Promise<DaySalesReport> {
     if (supabase) {
       try {
@@ -453,6 +485,41 @@ export const supabaseService = {
     }
 
     return clone(loadDemoState().categories);
+  },
+
+  async getFinanceExpenses(startDate: string, endDate: string): Promise<FinanceExpense[]> {
+    const state = loadDemoState();
+    const filtered = state.financeExpenses.filter(expense => {
+      return expense.expense_date >= startDate && expense.expense_date <= endDate;
+    });
+
+    return clone(filtered.sort((left, right) => right.expense_date.localeCompare(left.expense_date)));
+  },
+
+  async addFinanceExpense(expense: DemoFinanceExpenseInput): Promise<FinanceExpense> {
+    const state = loadDemoState();
+    const now = new Date().toISOString();
+    const newExpense: FinanceExpense = {
+      id: generateId('expense'),
+      ...expense,
+      created_at: now,
+      updated_at: now,
+    };
+
+    state.financeExpenses.unshift(newExpense);
+    saveDemoState();
+    return clone(newExpense);
+  },
+
+  async deleteFinanceExpense(expenseId: string): Promise<void> {
+    const state = loadDemoState();
+    const index = state.financeExpenses.findIndex(expense => expense.id === expenseId);
+    if (index === -1) {
+      throw new Error('Expense not found');
+    }
+
+    state.financeExpenses.splice(index, 1);
+    saveDemoState();
   },
 
   async addProduct(newProduct: DemoProductInput): Promise<Product> {
@@ -682,6 +749,59 @@ export const supabaseService = {
     }
 
     state.products.splice(productIndex, 1);
+    saveDemoState();
+  },
+
+  async updateCreditSalePayment(saleId: string, updates: { amount_paid?: number; status?: string; updated_at?: string }): Promise<Sale> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('sales')
+          .update(updates)
+          .eq('id', saleId)
+          .select()
+          .single();
+        if (!error && data) {
+          return data as Sale;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const sale = state.sales.find(s => s.id === saleId);
+    if (!sale) {
+      throw new Error('Sale not found');
+    }
+
+    Object.assign(sale, updates);
+    saveDemoState();
+    return clone(sale);
+  },
+
+  async deleteCreditSale(saleId: string): Promise<void> {
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('sales')
+          .delete()
+          .eq('id', saleId);
+        if (!error) {
+          return;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const index = state.sales.findIndex(s => s.id === saleId);
+    if (index === -1) {
+      throw new Error('Sale not found');
+    }
+
+    state.sales.splice(index, 1);
     saveDemoState();
   },
 };

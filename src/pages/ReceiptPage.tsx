@@ -64,6 +64,9 @@ ${padCenter(formatDate(receipt.saleDate), 40)}
 ${padCenter('-'.repeat(40), 40)}
 ${padCenter('SALES RECEIPT', 40)}
 ${padCenter('-'.repeat(40), 40)}
+${padCenter(`Cashier Role: ${receipt.cashierRole.toUpperCase()}`, 40)}
+${padCenter(`Cashier Name: ${receipt.cashierName}`, 40)}
+${padCenter('-'.repeat(40), 40)}
 
 ${padRight('ITEM', 'QTY', 40)}
 ${padRight('UNIT PRICE', 'TOTAL', 40)}

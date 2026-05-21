@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CartItem, ReceiptData } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { supabaseService } from '../services/supabase';
 import '../styles/Cart.css';
 
@@ -18,6 +19,7 @@ export default function Cart({
   onUpdateQuantity,
   onCheckoutSuccess,
 }: CartProps) {
+  const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [processingPayment, setProcessingPayment] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +71,8 @@ export default function Cart({
         saleDate: sale.sale_date,
         paymentMethod,
         totalAmount: total,
+        cashierRole: user?.role ?? 'cashier',
+        cashierName: user?.fullName || user?.username || 'Unknown User',
         items: items.map(item => ({
           productId: item.productId,
           name: item.product.name,

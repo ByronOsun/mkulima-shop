@@ -1,0 +1,404 @@
+.credit-sales-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+.credit-header {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.credit-header h2 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 24px;
+}
+
+.subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+}
+
+.error-message,
+.success-message {
+  padding: 12px 15px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-message {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.success-message {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+}
+
+.credit-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
+.sales-list-panel,
+.payment-panel {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.sales-list-panel h3,
+.payment-panel h3 {
+  margin: 0;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+  font-size: 16px;
+}
+
+.payment-panel h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sales-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.sale-card {
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 2px solid #eee;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.sale-card:hover {
+  border-color: #4CAF50;
+  background-color: #f9f9f9;
+}
+
+.sale-card.selected {
+  border-color: #4CAF50;
+  background-color: #f1f8f4;
+}
+
+.sale-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.sale-date {
+  color: #666;
+  font-weight: 600;
+}
+
+.sale-status {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.customer-block {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.customer-name {
+  display: block;
+  color: #333;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.customer-contact {
+  display: block;
+  color: #999;
+  font-size: 12px;
+}
+
+.amount-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.amount-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #333;
+}
+
+.amount-row span:first-child {
+  font-weight: 500;
+  color: #666;
+}
+
+.amount-row span:last-child {
+  font-weight: 600;
+}
+
+.amount-row.paid span:last-child {
+  color: #2e7d32;
+}
+
+.amount-row.balance span:last-child {
+  color: #d32f2f;
+}
+
+.loading,
+.empty-state,
+.no-selection {
+  padding: 40px 20px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+/* Payment Panel Styles */
+.bill-details {
+  flex: 0 0 auto;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.detail-value {
+  color: #333;
+  font-weight: 600;
+}
+
+.detail-value.amount {
+  color: #4CAF50;
+}
+
+.detail-value.paid {
+  color: #2e7d32;
+}
+
+.balance-row {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  background-color: #f9f9f9;
+  margin: 5px -15px -5px;
+  padding-left: 15px;
+  padding-right: 15px;
+  border-bottom: none;
+}
+
+.detail-value.balance {
+  color: #d32f2f;
+}
+
+.items-section {
+  flex: 0 0 auto;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.items-table {
+  font-size: 12px;
+}
+
+.items-header {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 1fr;
+  gap: 8px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.item-row {
+  display: grid;
+  grid-template-columns: 2fr 0.8fr 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  color: #333;
+}
+
+.payment-section {
+  flex: 0 0 auto;
+  padding: 15px;
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.payment-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.payment-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+.btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.btn-secondary {
+  background-color: #2196F3;
+  color: white;
+  flex: 1;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #0b7dda;
+}
+
+.btn-danger {
+  background-color: #f44336;
+  color: white;
+  flex: 1;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #da190b;
+}
+
+.admin-actions {
+  flex: 0 0 auto;
+  padding: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 1024px) {
+  .credit-content {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-list-panel {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .credit-sales-page {
+    padding: 10px;
+  }
+
+  .credit-header {
+    padding: 12px;
+  }
+
+  .credit-content {
+    gap: 12px;
+  }
+
+  .items-header {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .item-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .payment-section {
+    flex-direction: column;
+  }
+
+  .admin-actions {
+    flex-direction: column;
+  }
+
+  .btn,
+  .btn-secondary,
+  .btn-danger {
+    width: 100%;
+  }
+}

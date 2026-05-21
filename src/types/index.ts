@@ -29,6 +29,9 @@ export interface Sale {
   payment_method: 'cash' | 'card' | 'mobile_money' | 'credit';
   status: 'completed' | 'pending' | 'cancelled';
   items: CartItem[];
+  customer_name?: string;
+  customer_contact?: string;
+  amount_paid?: number;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +76,18 @@ export interface DaySalesReport {
   top_products: Product[];
 }
 
+export type FinanceExpenseCategory = 'salaries' | 'rent' | 'logistics' | 'investment' | 'others';
+
+export interface FinanceExpense {
+  id: string;
+  expense_date: string;
+  category: FinanceExpenseCategory;
+  description: string;
+  amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ReceiptItem {
   productId: string;
   name: string;
@@ -88,6 +103,8 @@ export interface ReceiptData {
   saleDate: string;
   paymentMethod: 'cash' | 'card' | 'mobile_money' | 'credit';
   totalAmount: number;
+  cashierRole: UserRole;
+  cashierName: string;
   items: ReceiptItem[];
 }
 
