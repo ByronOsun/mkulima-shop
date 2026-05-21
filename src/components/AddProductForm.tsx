@@ -61,10 +61,12 @@ export default function AddProductForm({
           ? Math.round(parseFloat(quantity) * parseFloat(quantityPerDozen))
           : Math.round(parseFloat(quantity));
 
+      const normalizedUnitPrice = Math.round(parseFloat(price));
+
       const newProduct = await supabaseService.addProduct({
         name: name.trim(),
         category,
-        unit_price: parseFloat(price),
+        unit_price: normalizedUnitPrice,
         quantity_in_stock: finalQuantity,
         sku: `SKU-${Date.now()}`,
         description: '',
@@ -129,9 +131,9 @@ export default function AddProductForm({
               type="number"
               value={price}
               onChange={e => setPrice(e.target.value)}
-              placeholder="0.00"
+              placeholder="0"
               min="0"
-              step="0.01"
+              step="1"
               disabled={loading}
               className="form-input"
             />

@@ -268,6 +268,7 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product[];
         }
+        throw new Error(error?.message || 'Failed to fetch products');
       } catch (error) {
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -283,6 +284,7 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product;
         }
+        throw new Error(error?.message || 'Failed to fetch product');
       } catch (error) {
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -306,6 +308,7 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product[];
         }
+        throw new Error(error?.message || 'Failed to fetch products by category');
       } catch (error) {
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -326,6 +329,7 @@ export const supabaseService = {
         if (!error && data) {
           return data as Product;
         }
+        throw new Error(error?.message || 'Failed to update product stock');
       } catch (error) {
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -337,10 +341,17 @@ export const supabaseService = {
   async createSale(saleData: DemoSaleInput): Promise<Sale> {
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('sales').insert([saleData]).select().single();
+        const normalizedSale = {
+          // ensure amount_paid is always present for DB NOT NULL constraint
+          ...saleData,
+          amount_paid: saleData.amount_paid ?? 0,
+        } as unknown as DemoSaleInput;
+
+        const { data, error } = await supabase.from('sales').insert([normalizedSale]).select().single();
         if (!error && data) {
           return data as Sale;
         }
+        throw new Error(error?.message || 'Failed to create sale');
       } catch (error) {
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -351,6 +362,7 @@ export const supabaseService = {
     const sale: Sale = {
       id: generateId('sale'),
       ...saleData,
+      amount_paid: saleData.amount_paid ?? 0,
       items: [],
       created_at: now,
       updated_at: now,
@@ -368,6 +380,7 @@ export const supabaseService = {
         if (!error && data) {
           return data as SaleItem[];
         }
+        throw new Error(error?.message || 'Failed to create sale items');
       } catch (error) {
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -550,6 +563,7 @@ export const supabaseService = {
         if (!error && data) {
           return data as Category[];
         }
+        throw new Error(error?.message || 'Failed to fetch categories');
       } catch (error) {
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -611,16 +625,22 @@ export const supabaseService = {
   },
 
   async addProduct(newProduct: DemoProductInput): Promise<Product> {
+    const normalizedProduct: DemoProductInput = {
+      ...newProduct,
+      unit_price: Math.round(Number(newProduct.unit_price)),
+    };
+
     if (supabase) {
       try {
         const { data, error } = await supabase
           .from('products')
-          .insert([newProduct])
+          .insert([normalizedProduct])
           .select()
           .single();
         if (!error && data) {
           return data as Product;
         }
+        throw new Error(error?.message || 'Failed to add product');
       } catch (error) {
         throw error instanceof Error ? error : new Error(String(error));
       }
@@ -630,7 +650,7 @@ export const supabaseService = {
     const now = new Date().toISOString();
     const product: Product = {
       id: generateId('prd'),
-      ...newProduct,
+      ...normalizedProduct,
       created_at: now,
       updated_at: now,
     };
@@ -703,12 +723,17 @@ export const supabaseService = {
   },
 
   async updateProduct(productId: string, updates: Partial<Product>): Promise<Product> {
+    const normalizedUpdates: Partial<Product> = {
+      ...updates,
+      ...(updates.unit_price !== undefined ? { unit_price: Math.round(Number(updates.unit_price)) } : {}),
+    };
+
     if (supabase) {
       try {
         const { data, error } = await supabase
           .from('products')
           .update({
-            ...updates,
+            ...normalizedUpdates,
             updated_at: new Date().toISOString(),
           })
           .eq('id', productId)
@@ -731,7 +756,7 @@ export const supabaseService = {
     const product = state.products[productIndex];
     const updatedProduct: Product = {
       ...product,
-      ...updates,
+      ...normalizedUpdates,
       updated_at: new Date().toISOString(),
     };
 
@@ -884,13 +909,13 @@ export const supabaseService = {
         };
 
         const { data, error } = await supabase.from('credit_payments').insert([insert]).select().single();
-        if (error) throw error;
+          if (error) throw error;
 
-        // fetch updated sale
-        const { data: saleData, error: saleErr } = await supabase.from('sales').select().eq('id', saleId).single();
-        if (saleErr) throw saleErr;
+          // fetch updated sale row; a DB trigger should update `sales.amount_paid` and `sales.status`
+          const { data: saleData, error: saleErr } = await supabase.from('sales').select().eq('id', saleId).single();
+          if (saleErr) throw saleErr;
 
-        return { payment: data, sale: saleData as Sale };
+          return { payment: data, sale: saleData as Sale };
       } catch (error) {
         throw error instanceof Error ? error : new Error(String(error));
       }

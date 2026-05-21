@@ -31,10 +31,14 @@ export default function EditProductModal({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    const parsedNumber = parseFloat(value) || 0;
+
     setFormData(prev => ({
       ...prev,
       [name]: name === 'unit_price' || name === 'quantity_in_stock' || name === 'reorder_level'
-        ? parseFloat(value) || 0
+        ? name === 'unit_price'
+          ? Math.round(parsedNumber)
+          : parsedNumber
         : value,
     }));
   };
@@ -65,7 +69,10 @@ export default function EditProductModal({
 
     try {
       setLoading(true);
-      await onSave(formData);
+      await onSave({
+        ...formData,
+        unit_price: Math.round(formData.unit_price),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update product');
     } finally {
@@ -152,8 +159,8 @@ export default function EditProductModal({
                 name="unit_price"
                 value={formData.unit_price}
                 onChange={handleChange}
-                placeholder="0.00"
-                step="0.01"
+                placeholder="0"
+                step="1"
                 min="0"
                 required
               />

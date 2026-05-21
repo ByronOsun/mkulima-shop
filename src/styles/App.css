@@ -34,6 +34,7 @@ body {
   background: var(--light);
   color: var(--text);
   overflow: hidden;
+  overflow-x: hidden;
 }
 
 .app {
@@ -52,12 +53,15 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border-bottom: 3px solid var(--primary);
 }
 
 .header-left {
   flex: 1;
+  min-width: 0;
 }
 
 .app-title {
@@ -75,6 +79,7 @@ body {
 .header-center {
   flex: 1;
   text-align: center;
+  min-width: 0;
 }
 
 .clock {
@@ -91,6 +96,8 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 1.5rem;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .user-info {
@@ -154,6 +161,7 @@ body {
   display: flex;
   flex: 1;
   overflow: hidden;
+  min-width: 0;
 }
 
 .sidebar-nav {
@@ -212,6 +220,7 @@ body {
   overflow: auto;
   padding: 1.5rem;
   background: var(--light);
+  min-width: 0;
 }
 
 .page-loader {
@@ -316,6 +325,9 @@ body {
     padding: 0.5rem;
     height: auto;
     order: 2;
+    justify-content: space-around;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .app-main {
@@ -337,6 +349,7 @@ body {
 
   .header-right {
     text-align: center;
+    justify-content: center;
   }
 
   .app-title {
@@ -360,6 +373,7 @@ body {
   .nav-btn {
     padding: 0.75rem 0.25rem;
     font-size: 0.65rem;
+    min-width: 72px;
   }
 
   .nav-icon {
