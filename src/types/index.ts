@@ -60,15 +60,6 @@ export interface StockMovement {
   created_at: string;
 }
 
-export interface User {
-  id: string;
-  email: string;
-  full_name?: string;
-  role: 'admin' | 'cashier' | 'manager';
-  is_active: boolean;
-  created_at: string;
-}
-
 export interface DaySalesReport {
   total_sales: number;
   total_revenue: number;
@@ -104,11 +95,13 @@ export type UserRole = 'cashier' | 'admin';
 
 export interface User {
   id: string;
-  username: string; // email for cashiers, 'admin' for admin
+  username: string;
   role: UserRole;
+  email?: string;
   firstName?: string;
   lastName?: string;
   fullName?: string;
+  is_active?: boolean;
   created_at?: string;
 }
 

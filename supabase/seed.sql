@@ -332,4 +332,33 @@ begin
   end if;
 end $$;
 
+-- Staff login users for the POS app.
+create extension if not exists pgcrypto;
+
+create table if not exists public.staff_users (
+  id uuid primary key default gen_random_uuid(),
+  username text not null unique,
+  pin_hash text not null,
+  role text not null check (role in ('admin', 'cashier')),
+  display_name text not null,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_staff_users_username on public.staff_users(username);
+create index if not exists idx_staff_users_role on public.staff_users(role);
+
+insert into public.staff_users (username, pin_hash, role, display_name)
+values
+  ('admin', encode(digest('123456', 'sha256'), 'hex'), 'admin', 'Administrator'),
+  ('john.wakulima', encode(digest('111111', 'sha256'), 'hex'), 'cashier', 'John Wakulima'),
+  ('mary.kipchoge', encode(digest('222222', 'sha256'), 'hex'), 'cashier', 'Mary Kipchoge')
+on conflict (username) do update set
+  pin_hash = excluded.pin_hash,
+  role = excluded.role,
+  display_name = excluded.display_name,
+  is_active = true,
+  updated_at = now();
+
 commit;

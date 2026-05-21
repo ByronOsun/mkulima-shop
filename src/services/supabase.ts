@@ -585,6 +585,81 @@ export const supabaseService = {
     return clone(updatedProduct);
   },
 
+  async receiveStock(
+    productId: string,
+    quantity: number,
+    reference: string = 'Stock requisition',
+    notes: string = 'Stock received from supplier'
+  ): Promise<Product> {
+    if (quantity <= 0) {
+      throw new Error('Restock quantity must be greater than zero');
+    }
+
+    if (supabase) {
+      try {
+        const { data: currentProduct, error: fetchError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        const nextQuantity = Number(currentProduct.quantity_in_stock ?? 0) + quantity;
+
+        const { data: updatedProduct, error: updateError } = await supabase
+          .from('products')
+          .update({ quantity_in_stock: nextQuantity })
+          .eq('id', productId)
+          .select('*')
+          .single();
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        const { error: movementError } = await supabase.from('stock_movements').insert([
+          {
+            product_id: productId,
+            movement_type: 'in',
+            quantity,
+            reference,
+            notes,
+          },
+        ]);
+
+        if (movementError) {
+          throw movementError;
+        }
+
+        return updatedProduct as Product;
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const updatedProduct = await this.updateProductStock(
+      productId,
+      (await this.getProductById(productId)).quantity_in_stock + quantity
+    );
+
+    if (!updatedProduct) {
+      throw new Error('Product not found');
+    }
+
+    await this.recordStockMovement({
+      product_id: productId,
+      movement_type: 'in',
+      quantity,
+      reference,
+      notes,
+    });
+
+    return updatedProduct;
+  },
+
   async deleteProduct(productId: string): Promise<void> {
     if (supabase) {
       try {
