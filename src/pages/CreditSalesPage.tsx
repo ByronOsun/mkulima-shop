@@ -118,6 +118,18 @@ export default function CreditSalesPage() {
     });
   };
 
+  const loadSelectedSaleDetails = async (saleId: string) => {
+    try {
+      const detailedSale = await supabaseService.getSaleById(saleId);
+      setSelectedSale(detailedSale);
+      setEditableCustomerName(detailedSale.customer_name || '');
+      setEditableCustomerContact(detailedSale.customer_contact || '');
+      setEditingCustomer(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load sale details');
+    }
+  };
+
   const handlePayment = async () => {
     if (!selectedSale || !paymentAmount) {
       setError('Please enter payment amount');
@@ -247,8 +259,8 @@ export default function CreditSalesPage() {
                     key={sale.id}
                     className={`sale-card ${isSelected ? 'selected' : ''}`}
                     onClick={() => {
-                      setSelectedSale(sale);
                       setPaymentAmount('');
+                      void loadSelectedSaleDetails(sale.id);
                     }}
                   >
                     <div className="sale-header-info">
@@ -279,6 +291,22 @@ export default function CreditSalesPage() {
                         <span>{formatCurrency(balance)}</span>
                       </div>
                     </div>
+
+                    {isSelected && sale.items && sale.items.length > 0 && (
+                      <div className="transaction-items-preview">
+                        <div className="preview-title">Products sold</div>
+                        {sale.items.map((item) => (
+                          <div key={`${sale.id}-${item.productId}`} className="preview-item-row">
+                            <span className="preview-item-name">
+                              {item.product?.name || 'Unknown product'}
+                            </span>
+                            <span className="preview-item-meta">
+                              {item.quantity} × {formatCurrency(item.unit_price)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

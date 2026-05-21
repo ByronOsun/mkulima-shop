@@ -3,6 +3,7 @@ import type {
   Category,
   DaySalesReport,
   FinanceExpense,
+  CartItem,
   Product,
   Sale,
   SaleItem,
@@ -248,6 +249,33 @@ const buildReport = (
   };
 };
 
+const attachSaleItemsToSales = (
+  sales: Sale[],
+  saleItems: SaleItem[],
+  products: Product[]
+): Sale[] => {
+  const itemsBySaleId = new Map<string, CartItem[]>();
+
+  for (const saleItem of saleItems) {
+    const existing = itemsBySaleId.get(saleItem.sale_id) ?? [];
+    const productFromItem = (saleItem as SaleItem & { product?: Product; products?: Product }).product
+      ?? (saleItem as SaleItem & { product?: Product; products?: Product }).products
+      ?? products.find(candidate => candidate.id === saleItem.product_id);
+    existing.push({
+      productId: saleItem.product_id,
+      product: productFromItem ?? ({ id: saleItem.product_id } as Product),
+      quantity: saleItem.quantity,
+      unit_price: saleItem.unit_price,
+      subtotal: saleItem.subtotal,
+    });
+    itemsBySaleId.set(saleItem.sale_id, existing);
+  }
+
+  return sales.map(sale => ({
+    ...sale,
+    items: itemsBySaleId.get(sale.id) ?? [],
+  }));
+};
 const filterSalesByDateRange = (sales: Sale[], startDate: string, endDate: string) => {
   const start = `${startDate}T00:00:00`;
   const end = `${endDate}T23:59:59`;
@@ -383,9 +411,29 @@ export const supabaseService = {
   async getSaleById(id: string): Promise<Sale> {
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('sales').select('*, sale_items(*)').eq('id', id).single();
+        const { data, error } = await supabase.from('sales').select('*').eq('id', id).single();
         if (!error && data) {
-          return data as Sale;
+          const [saleItemsResult, productsResult] = await Promise.all([
+            supabase.from('sale_items').select('*, products(*)').eq('sale_id', id),
+            supabase.from('products').select('*'),
+          ]);
+
+          const saleItems = (!saleItemsResult.error && saleItemsResult.data ? saleItemsResult.data : []) as any[];
+          const products = (!productsResult.error && productsResult.data ? productsResult.data : []) as Product[];
+          return attachSaleItemsToSales(
+            [data as Sale],
+            saleItems.map(item => ({
+              id: item.id,
+              sale_id: item.sale_id,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              subtotal: item.subtotal,
+              created_at: item.created_at,
+              product: item.products,
+            } as unknown as SaleItem)),
+            products
+          )[0];
         }
       } catch {
         // fall through to demo data
@@ -398,10 +446,9 @@ export const supabaseService = {
       throw new Error('Sale not found');
     }
 
-    return clone({
-      ...sale,
-      items: [],
-    });
+    return clone(
+      attachSaleItemsToSales([sale], state.saleItems.filter(item => item.sale_id === id), state.products)[0]
+    );
   },
 
   async getSalesForDate(date: string): Promise<Sale[]> {
@@ -414,7 +461,28 @@ export const supabaseService = {
           .lt('sale_date', `${date}T23:59:59`)
           .order('created_at', { ascending: false });
         if (!error && data) {
-          return data as Sale[];
+          const sales = data as Sale[];
+          const saleIds = sales.map(sale => sale.id);
+          const [saleItemsResult, productsResult] = await Promise.all([
+            supabase.from('sale_items').select('*, products(*)').in('sale_id', saleIds),
+            supabase.from('products').select('*'),
+          ]);
+          const saleItems = (!saleItemsResult.error && saleItemsResult.data ? saleItemsResult.data : []) as any[];
+          const products = (!productsResult.error && productsResult.data ? productsResult.data : []) as Product[];
+          return attachSaleItemsToSales(
+            sales,
+            saleItems.map(item => ({
+              id: item.id,
+              sale_id: item.sale_id,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              subtotal: item.subtotal,
+              created_at: item.created_at,
+              product: item.products,
+            } as unknown as SaleItem)),
+            products
+          );
         }
       } catch {
         // fall through to demo data
@@ -423,12 +491,9 @@ export const supabaseService = {
 
     const state = loadDemoState();
     const matchingSales = state.sales.filter(sale => sale.sale_date.startsWith(date));
-    return clone(
-      matchingSales.map(sale => ({
-        ...sale,
-        items: [],
-      }))
-    );
+    const saleIds = new Set(matchingSales.map(sale => sale.id));
+    const relatedSaleItems = state.saleItems.filter(item => saleIds.has(item.sale_id));
+    return clone(attachSaleItemsToSales(matchingSales, relatedSaleItems, state.products));
   },
 
   async getSalesBetweenDates(startDate: string, endDate: string): Promise<Sale[]> {
@@ -441,7 +506,28 @@ export const supabaseService = {
           .lte('sale_date', `${endDate}T23:59:59`)
           .order('sale_date', { ascending: false });
         if (!error && data) {
-          return data as Sale[];
+          const sales = data as Sale[];
+          const saleIds = sales.map(sale => sale.id);
+          const [saleItemsResult, productsResult] = await Promise.all([
+            supabase.from('sale_items').select('*, products(*)').in('sale_id', saleIds),
+            supabase.from('products').select('*'),
+          ]);
+          const saleItems = (!saleItemsResult.error && saleItemsResult.data ? saleItemsResult.data : []) as any[];
+          const products = (!productsResult.error && productsResult.data ? productsResult.data : []) as Product[];
+          return attachSaleItemsToSales(
+            sales,
+            saleItems.map(item => ({
+              id: item.id,
+              sale_id: item.sale_id,
+              product_id: item.product_id,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              subtotal: item.subtotal,
+              created_at: item.created_at,
+              product: item.products,
+            } as unknown as SaleItem)),
+            products
+          );
         }
       } catch {
         // fall through to demo data
@@ -449,7 +535,10 @@ export const supabaseService = {
     }
 
     const state = loadDemoState();
-    return clone(filterSalesByDateRange(state.sales, startDate, endDate));
+    const sales = filterSalesByDateRange(state.sales, startDate, endDate);
+    const saleIds = new Set(sales.map(sale => sale.id));
+    const relatedSaleItems = state.saleItems.filter(item => saleIds.has(item.sale_id));
+    return clone(attachSaleItemsToSales(sales, relatedSaleItems, state.products));
   },
 
   async getDaySalesReport(date: string): Promise<DaySalesReport> {
