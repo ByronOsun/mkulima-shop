@@ -32,6 +32,7 @@ export interface Sale {
   customer_name?: string;
   customer_contact?: string;
   amount_paid?: number;
+  payment_channel?: string;
   created_at: string;
   updated_at: string;
 }

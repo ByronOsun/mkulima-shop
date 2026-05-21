@@ -15,7 +15,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
-type DemoSaleInput = Pick<Sale, 'sale_date' | 'total_amount' | 'payment_method' | 'status'>;
+type DemoSaleInput = Pick<Sale, 'sale_date' | 'total_amount' | 'payment_method' | 'status'> &
+  Partial<Pick<Sale, 'customer_name' | 'customer_contact' | 'amount_paid' | 'payment_channel'>>;
 type DemoSaleItemInput = Omit<SaleItem, 'id' | 'created_at'>;
 type DemoStockMovementInput = Omit<StockMovement, 'id' | 'created_at'>;
 type DemoProductInput = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
@@ -28,6 +29,7 @@ interface DemoState {
   saleItems: SaleItem[];
   stockMovements: StockMovement[];
   financeExpenses: FinanceExpense[];
+  creditPayments?: Array<{ id: string; sale_id: string; amount: number; payment_method: string; payment_channel?: string; paid_by?: string; note?: string; created_at: string }>;
 }
 
 const STORAGE_KEY = 'mkulima-demo-backend';
@@ -134,6 +136,7 @@ const createSeedState = (): DemoState => ({
   saleItems: [],
   stockMovements: [],
   financeExpenses: [],
+  creditPayments: [],
 });
 
 let demoState = createSeedState();
@@ -162,6 +165,7 @@ const loadDemoState = () => {
       saleItems: parsed.saleItems ?? [],
       stockMovements: parsed.stockMovements ?? [],
       financeExpenses: parsed.financeExpenses ?? [],
+      creditPayments: parsed.creditPayments ?? [],
     };
     return demoState;
   } catch {
@@ -753,6 +757,92 @@ export const supabaseService = {
   },
 
   async updateCreditSalePayment(saleId: string, updates: { amount_paid?: number; status?: string; updated_at?: string }): Promise<Sale> {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('sales')
+          .update(updates)
+          .eq('id', saleId)
+          .select()
+          .single();
+        if (!error && data) {
+          return data as Sale;
+        }
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    const state = loadDemoState();
+    const sale = state.sales.find(s => s.id === saleId);
+    if (!sale) {
+      throw new Error('Sale not found');
+    }
+
+    Object.assign(sale, updates);
+    saveDemoState();
+    return clone(sale);
+  },
+
+  async createCreditPayment(
+    saleId: string,
+    payment: { amount: number; payment_method: string; payment_channel?: string; paid_by?: string | null; note?: string }
+  ): Promise<{ payment: any; sale: Sale }> {
+    if (supabase) {
+      try {
+        const insert = {
+          sale_id: saleId,
+          amount: payment.amount,
+          payment_method: payment.payment_method,
+          payment_channel: payment.payment_channel ?? undefined,
+          paid_by: payment.paid_by ?? undefined,
+          note: payment.note ?? undefined,
+        };
+
+        const { data, error } = await supabase.from('credit_payments').insert([insert]).select().single();
+        if (error) throw error;
+
+        // fetch updated sale
+        const { data: saleData, error: saleErr } = await supabase.from('sales').select().eq('id', saleId).single();
+        if (saleErr) throw saleErr;
+
+        return { payment: data, sale: saleData as Sale };
+      } catch {
+        // fall through to demo data
+      }
+    }
+
+    // Demo backend behaviour: record payment and update sale.amount_paid
+    const state = loadDemoState();
+    const now = new Date().toISOString();
+    const paymentRecord = {
+      id: generateId('payment'),
+      sale_id: saleId,
+      amount: payment.amount,
+      payment_method: payment.payment_method,
+      payment_channel: payment.payment_channel ?? undefined,
+      paid_by: payment.paid_by ?? undefined,
+      note: payment.note ?? undefined,
+      created_at: now,
+    };
+
+    state.creditPayments = state.creditPayments || [];
+    state.creditPayments.unshift(paymentRecord as any);
+
+    const sale = state.sales.find(s => s.id === saleId);
+    if (!sale) throw new Error('Sale not found');
+
+    sale.amount_paid = (sale.amount_paid || 0) + payment.amount;
+    sale.status = sale.amount_paid >= sale.total_amount ? 'completed' : 'pending';
+    sale.updated_at = now;
+
+    saveDemoState();
+    return { payment: clone(paymentRecord), sale: clone(sale) } as any;
+  },
+
+  
+
+  async updateSaleDetails(saleId: string, updates: { customer_name?: string; customer_contact?: string; updated_at?: string }): Promise<Sale> {
     if (supabase) {
       try {
         const { data, error } = await supabase

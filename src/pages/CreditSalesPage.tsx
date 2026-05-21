@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Sale } from '../types';
-import { supabaseService } from '../services/supabase';
+import { supabaseService, supabase } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/CreditSalesPage.css';
 
@@ -11,11 +11,75 @@ export default function CreditSalesPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState(false);
+  const [editableCustomerName, setEditableCustomerName] = useState<string>('');
+  const [editableCustomerContact, setEditableCustomerContact] = useState<string>('');
   const [paymentAmount, setPaymentAmount] = useState<string>('');
+  const [paymentMethodForRecord, setPaymentMethodForRecord] = useState<'cash' | 'mobile_money'>('cash');
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     void loadCreditSales();
+  }, []);
+
+  // Subscribe to sales changes (realtime) so new credit sales appear immediately.
+  useEffect(() => {
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let channel: any = null;
+
+    if (supabase) {
+      try {
+        // v2 realtime: use channel/postgres_changes where available
+        // Fallback to from().on for older clients via any cast
+        if ((supabase as any).channel) {
+          channel = (supabase as any)
+            .channel('public:sales')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, (payload: any) => {
+              const row = payload?.new || payload?.record || null;
+              if (!row) return;
+              if (row.payment_method === 'credit') {
+                void loadCreditSales();
+              }
+            })
+            .subscribe();
+        } else if ((supabase as any).from) {
+          // older API
+          channel = (supabase as any)
+            .from('sales')
+            .on('*', (payload: any) => {
+              const row = payload?.new || payload?.record || null;
+              if (!row) return;
+              if (row.payment_method === 'credit') {
+                void loadCreditSales();
+              }
+            })
+            .subscribe();
+        }
+      } catch (err) {
+        // ignore and fall back to polling
+        console.warn('Realtime subscription failed, falling back to polling', err);
+      }
+    }
+
+    // polling fallback for demo mode or if realtime isn't available
+    if (!channel) {
+      pollInterval = setInterval(() => {
+        void loadCreditSales();
+      }, 10000);
+    }
+
+    return () => {
+      try {
+        if (channel && (supabase as any).removeChannel) {
+          (supabase as any).removeChannel(channel);
+        } else if (channel && (supabase as any).from && (channel as any).unsubscribe) {
+          (channel as any).unsubscribe();
+        }
+      } catch (_) {
+        // noop
+      }
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, []);
 
   const loadCreditSales = async () => {
@@ -76,32 +140,26 @@ export default function CreditSalesPage() {
       setProcessingId(selectedSale.id);
       setError(null);
 
-      const amountPaid = (selectedSale.amount_paid || 0) + amount;
-      const isFullyPaid = amountPaid >= selectedSale.total_amount;
-
-      // Update sale with payment info
-      await supabaseService.updateCreditSalePayment(selectedSale.id, {
-        amount_paid: amountPaid,
-        status: isFullyPaid ? 'completed' : 'pending',
-        updated_at: new Date().toISOString(),
+      // Create a credit payment record (trigger updates to sale via DB trigger or demo fallback)
+      await supabaseService.createCreditPayment(selectedSale.id, {
+        amount,
+        payment_method: paymentMethodForRecord,
+        payment_channel: paymentMethodForRecord,
       });
 
-      const successMessage = isFullyPaid
-        ? `Bill cleared successfully! Payment of ${formatCurrency(amount)} received.`
-        : `Payment of ${formatCurrency(amount)} recorded. Remaining: ${formatCurrency(selectedSale.total_amount - amountPaid)}`;
-
-      setMessage(successMessage);
-
-      // Update the selected sale with new payment info
-      setSelectedSale({
-        ...selectedSale,
-        amount_paid: amountPaid,
-        status: isFullyPaid ? 'completed' : 'pending',
-        updated_at: new Date().toISOString(),
-      });
-
-      setPaymentAmount('');
+      // Refresh the list and selected sale
       await loadCreditSales();
+      const refreshed = (await supabaseService.getSalesBetweenDates(new Date().toISOString().split('T')[0], new Date().toISOString().split('T')[0])).find(s => s.id === selectedSale.id);
+      if (refreshed) {
+        setSelectedSale(refreshed);
+        const newPaid = refreshed.amount_paid || 0;
+        const isFullyPaid = newPaid >= refreshed.total_amount;
+        const successMessage = isFullyPaid
+          ? `Bill cleared successfully! Payment of ${formatCurrency(amount)} received.`
+          : `Payment of ${formatCurrency(amount)} recorded. Remaining: ${formatCurrency(refreshed.total_amount - newPaid)}`;
+        setMessage(successMessage);
+      }
+      setPaymentAmount('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process payment');
     } finally {
@@ -235,21 +293,92 @@ export default function CreditSalesPage() {
               <div className="bill-details">
                 <div className="customer-section">
                   <h4>Customer Information</h4>
-                  {selectedSale.customer_name ? (
-                    <div className="customer-details">
-                      <div className="detail-row">
-                        <span className="detail-label">Customer Name:</span>
-                        <span className="detail-value">{selectedSale.customer_name}</span>
+                  {editingCustomer ? (
+                    <div className="customer-edit">
+                      <input
+                        type="text"
+                        value={editableCustomerName}
+                        onChange={(e) => setEditableCustomerName(e.target.value)}
+                        placeholder="Customer name"
+                        className="credit-input"
+                      />
+                      <input
+                        type="text"
+                        value={editableCustomerContact}
+                        onChange={(e) => setEditableCustomerContact(e.target.value)}
+                        placeholder="Customer phone"
+                        className="credit-input"
+                      />
+                      <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                        <button
+                          className="btn btn-primary"
+                          onClick={async () => {
+                            if (!selectedSale) return;
+                            try {
+                              setProcessingId(selectedSale.id);
+                              const updated = await supabaseService.updateSaleDetails(selectedSale.id, {
+                                customer_name: editableCustomerName || undefined,
+                                customer_contact: editableCustomerContact || undefined,
+                                updated_at: new Date().toISOString(),
+                              });
+                              setSelectedSale({ ...selectedSale, ...updated });
+                              setMessage('Customer details saved');
+                              setEditingCustomer(false);
+                              await loadCreditSales();
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : 'Failed to save details');
+                            } finally {
+                              setProcessingId(null);
+                            }
+                          }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => {
+                            setEditingCustomer(false);
+                            if (selectedSale) {
+                              setEditableCustomerName(selectedSale.customer_name || '');
+                              setEditableCustomerContact(selectedSale.customer_contact || '');
+                            }
+                          }}
+                        >
+                          Cancel
+                        </button>
                       </div>
-                      {selectedSale.customer_contact && (
-                        <div className="detail-row">
-                          <span className="detail-label">Contact:</span>
-                          <span className="detail-value">{selectedSale.customer_contact}</span>
-                        </div>
-                      )}
                     </div>
                   ) : (
-                    <p className="no-customer">No customer details recorded</p>
+                    <>
+                      {selectedSale.customer_name ? (
+                        <div className="customer-details">
+                          <div className="detail-row">
+                            <span className="detail-label">Customer Name:</span>
+                            <span className="detail-value">{selectedSale.customer_name}</span>
+                          </div>
+                          {selectedSale.customer_contact && (
+                            <div className="detail-row">
+                              <span className="detail-label">Contact:</span>
+                              <span className="detail-value">{selectedSale.customer_contact}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="no-customer">No customer details recorded</p>
+                      )}
+                      <div style={{ marginTop: 8 }}>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => {
+                            setEditingCustomer(true);
+                            setEditableCustomerName(selectedSale.customer_name || '');
+                            setEditableCustomerContact(selectedSale.customer_contact || '');
+                          }}
+                        >
+                          Edit Customer
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -306,16 +435,40 @@ export default function CreditSalesPage() {
               )}
 
               <div className="payment-section">
+
+                {/* Show settle option when fully paid (available to cashier and admin) */}
+                {selectedSale.amount_paid && selectedSale.amount_paid >= selectedSale.total_amount && (
+                  <div style={{ marginTop: 12 }}>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleMarkCleared(selectedSale.id)}
+                      disabled={processingId === selectedSale.id}
+                    >
+                      Settle Bill
+                    </button>
+                  </div>
+                )}
                 <div className="payment-input-group">
                   <label>Record Payment:</label>
-                  <input
-                    type="number"
-                    placeholder={`Max: ${formatCurrency(selectedSale.total_amount - (selectedSale.amount_paid || 0))}`}
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="payment-input"
-                    disabled={processingId === selectedSale.id}
-                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="number"
+                      placeholder={`Max: ${formatCurrency(selectedSale.total_amount - (selectedSale.amount_paid || 0))}`}
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      className="payment-input"
+                      disabled={processingId === selectedSale.id}
+                    />
+                    <select
+                      value={paymentMethodForRecord}
+                      onChange={(e) => setPaymentMethodForRecord(e.target.value as 'cash' | 'mobile_money')}
+                      className="payment-input"
+                      disabled={processingId === selectedSale.id}
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="mobile_money">Mobile Money</option>
+                    </select>
+                  </div>
                 </div>
                 <button
                   className="btn btn-primary"

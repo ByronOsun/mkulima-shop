@@ -24,6 +24,10 @@ export default function Cart({
   const [processingPayment, setProcessingPayment] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerContact, setCustomerContact] = useState<string>('');
+  const [initialPayment, setInitialPayment] = useState<string>('');
+  const [initialPaymentMethod, setInitialPaymentMethod] = useState<'cash' | 'mobile_money'>('cash');
 
   const total = items.reduce((sum, item) => sum + item.subtotal, 0);
 
@@ -37,13 +41,26 @@ export default function Cart({
       setProcessingPayment(true);
       setError(null);
 
+      // Determine sale status and initial paid amount for credit
+      let status: 'completed' | 'pending' = 'completed';
+      let amountPaid = 0;
+      if (paymentMethod === 'credit') {
+        const parsed = parseFloat(initialPayment || '0') || 0;
+        amountPaid = parsed;
+        status = parsed >= total ? 'completed' : 'pending';
+      }
+
       // Create sale record
       const sale = await supabaseService.createSale({
         sale_date: new Date().toISOString(),
         total_amount: total,
         payment_method: paymentMethod,
-        status: 'completed',
-      });
+        status,
+        customer_name: paymentMethod === 'credit' ? customerName || undefined : undefined,
+        customer_contact: paymentMethod === 'credit' ? customerContact || undefined : undefined,
+        amount_paid: amountPaid || undefined,
+        payment_channel: paymentMethod === 'credit' && amountPaid > 0 ? initialPaymentMethod : undefined,
+      } as any);
 
       // Create sale items
       const saleItems = items.map(item => ({
@@ -82,6 +99,13 @@ export default function Cart({
           subtotal: item.subtotal,
         })),
       });
+
+      // If initial payment was provided, and payment method is cash/mobile_money, we'll keep UI message
+      if (paymentMethod === 'credit' && amountPaid > 0) {
+        setSuccess(`Credit sale created. Initial payment of ${new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(amountPaid)} recorded.`);
+      } else {
+        setSuccess(`Sale completed! Sale ID: ${sale.id.substring(0, 8)}...`);
+      }
 
       setSuccess(`Sale completed! Sale ID: ${sale.id.substring(0, 8)}...`);
     } catch (err) {
@@ -187,6 +211,48 @@ export default function Cart({
               <option value="credit">Credit</option>
             </select>
           </div>
+
+          {paymentMethod === 'credit' && (
+            <div className="credit-customer-section">
+              <h4>Credit Customer Details</h4>
+              <div className="credit-row">
+                <input
+                  type="text"
+                  placeholder="Customer name"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  className="credit-input"
+                />
+                <input
+                  type="text"
+                  placeholder="Customer phone"
+                  value={customerContact}
+                  onChange={e => setCustomerContact(e.target.value)}
+                  className="credit-input"
+                />
+              </div>
+
+              <div className="credit-row">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Initial payment amount (optional)"
+                  value={initialPayment}
+                  onChange={e => setInitialPayment(e.target.value)}
+                  className="credit-input"
+                />
+                <select
+                  value={initialPaymentMethod}
+                  onChange={e => setInitialPaymentMethod(e.target.value as 'cash' | 'mobile_money')}
+                  className="credit-input"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="mobile_money">Mobile Money</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           {error && <div className="error-message">{error}</div>}
           {success && <div className="success-message">{success}</div>}
