@@ -280,14 +280,14 @@ function POS() {
               <Badge key={c} variant={category === c ? "default" : "outline"} className="cursor-pointer" onClick={() => setCategory(c)}>{c}</Badge>
             ))}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3 auto-rows-fr">
             {filtered.map((p) => {
               const out = p.stock_quantity <= 0;
               const low = p.stock_quantity > 0 && p.stock_quantity < p.low_stock_threshold;
               const mode = saleModes[p.id] ?? "bottle";
               const wholesaleDisabled = p.price_wholesale_crate == null || Number(p.price_wholesale_crate) <= 0;
               return (
-                <Card key={p.id} className={`p-3 transition ${out ? "opacity-50" : ""}`}>
+                <Card key={p.id} className={`p-3 transition h-40 flex flex-col justify-between ${out ? "opacity-50" : ""}`}>
                   <div className="flex justify-between items-start gap-1">
                     <p className="font-medium text-sm leading-tight">{getDisplayName(p)}</p>
                     {low && <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">Low</Badge>}
