@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CartItem, ReceiptData, Sale } from '../types';
+import { CartItem, ReceiptData } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { supabaseService } from '../services/supabase';
 import '../styles/Cart.css';
@@ -28,13 +28,7 @@ export default function Cart({
   const [customerContact, setCustomerContact] = useState<string>('');
   const [initialPayment, setInitialPayment] = useState<string>('');
   const [initialPaymentMethod, setInitialPaymentMethod] = useState<'cash' | 'mobile_money'>('cash');
-  // Settlement (cashier) controls for existing credit sales
-  const [settleQuery, setSettleQuery] = useState(''); // sale id to load
-  const [settleSale, setSettleSale] = useState<Sale | null>(null);
-  const [settleAmount, setSettleAmount] = useState<string>('');
-  const [settleMethod, setSettleMethod] = useState<'cash' | 'mobile_money'>('cash');
-  const [settleProcessing, setSettleProcessing] = useState(false);
-  const [settleMessage, setSettleMessage] = useState<string | null>(null);
+  
 
   const total = items.reduce((sum, item) => sum + item.subtotal, 0);
 
@@ -122,94 +116,9 @@ export default function Cart({
     }
   };
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-    }).format(value);
+  
 
-  const loadSettleSale = async () => {
-    setSettleMessage(null);
-    setSettleSale(null);
-    if (!settleQuery) {
-      setSettleMessage('Enter Sale ID to load');
-      return;
-    }
-
-    try {
-      const sale = await supabaseService.getSaleById(settleQuery.trim());
-      if (!sale) {
-        setSettleMessage('Sale not found');
-        return;
-      }
-      if (sale.payment_method !== 'credit') {
-        setSettleMessage('Sale is not a credit sale');
-        return;
-      }
-      setSettleSale(sale);
-      setSettleAmount('');
-    } catch (err) {
-      setSettleMessage(err instanceof Error ? err.message : 'Failed to load sale');
-    }
-  };
-
-  const handleSettlePayment = async () => {
-    setSettleMessage(null);
-    if (!settleSale) {
-      setSettleMessage('No sale loaded');
-      return;
-    }
-
-    const amount = parseFloat(settleAmount || '0');
-    if (isNaN(amount) || amount <= 0) {
-      setSettleMessage('Enter a valid payment amount');
-      return;
-    }
-
-    const balance = settleSale.total_amount - (settleSale.amount_paid || 0);
-    if (amount > balance) {
-      setSettleMessage(`Payment cannot exceed remaining balance of ${formatCurrency(balance)}`);
-      return;
-    }
-
-    try {
-      setSettleProcessing(true);
-      const result = await supabaseService.createCreditPayment(settleSale.id, {
-        amount,
-        payment_method: settleMethod,
-        payment_channel: settleMethod,
-      });
-
-      const updatedSale = result?.sale as Sale || await supabaseService.getSaleById(settleSale.id);
-      const newBalance = Math.max(0, updatedSale.total_amount - (updatedSale.amount_paid || 0));
-
-      if (updatedSale.status === 'completed') {
-        setSettleMessage(`Payment recorded. Sale is now fully paid.`);
-        setSettleSale(null);
-      } else {
-        setSettleSale(updatedSale);
-        setSettleMessage(`Payment recorded. Remaining: ${formatCurrency(newBalance)}`);
-      }
-
-      // prepare receipt: reuse onCheckoutSuccess shape minimally
-      onCheckoutSuccess({
-        saleId: updatedSale.id,
-        receiptNumber: updatedSale.id.substring(0, 8).toUpperCase(),
-        saleDate: updatedSale.sale_date,
-        paymentMethod: settleMethod,
-        totalAmount: updatedSale.total_amount,
-        cashierRole: user?.role ?? 'cashier',
-        cashierName: user?.fullName || user?.username || 'Unknown User',
-        items: updatedSale.items?.map(i => ({ productId: i.productId, name: i.product?.name || '', sku: '', quantity: i.quantity, unitPrice: i.unit_price, subtotal: i.subtotal })) || [],
-      });
-
-      setSettleAmount('');
-    } catch (err) {
-      setSettleMessage(err instanceof Error ? err.message : 'Failed to record payment');
-    } finally {
-      setSettleProcessing(false);
-    }
-  };
+  
 
   return (
     <div className="cart-container">
@@ -361,49 +270,7 @@ export default function Cart({
             {processingPayment ? 'Processing...' : 'Complete Sale'}
           </button>
 
-          <div className="settle-section" style={{ marginTop: 16 }}>
-            <h4>Settle Existing Credit Sale</h4>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-              <input
-                placeholder="Enter Sale ID"
-                value={settleQuery}
-                onChange={e => setSettleQuery(e.target.value)}
-                className="credit-input"
-              />
-              <button className="btn" onClick={loadSettleSale} disabled={settleProcessing}>Load Sale</button>
-            </div>
-
-            {settleMessage && <div className="info-message">{settleMessage}</div>}
-
-            {settleSale && (
-              <div className="settle-details">
-                <div style={{ marginBottom: 8 }}>
-                  <div><strong>Customer:</strong> {settleSale.customer_name || 'Walk-in'}</div>
-                  <div><strong>Contact:</strong> {settleSale.customer_contact || '-'}</div>
-                  <div><strong>Original:</strong> {formatCurrency(settleSale.total_amount)}</div>
-                  <div><strong>Paid:</strong> {formatCurrency(settleSale.amount_paid || 0)}</div>
-                  <div><strong>Balance:</strong> {formatCurrency(Math.max(0, settleSale.total_amount - (settleSale.amount_paid || 0)))}</div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    placeholder="Amount to pay"
-                    value={settleAmount}
-                    onChange={e => setSettleAmount(e.target.value)}
-                    className="credit-input"
-                  />
-                  <select value={settleMethod} onChange={e => setSettleMethod(e.target.value as 'cash' | 'mobile_money')} className="credit-input">
-                    <option value="cash">Cash</option>
-                    <option value="mobile_money">Mobile Money</option>
-                  </select>
-                  <button className="btn btn-primary" onClick={handleSettlePayment} disabled={settleProcessing}>Submit</button>
-                </div>
-              </div>
-            )}
-          </div>
+          
         </>
       )}
     </div>

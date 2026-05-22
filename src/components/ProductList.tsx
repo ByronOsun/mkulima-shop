@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Product } from '../types';
 import '../styles/ProductCard.css';
 
@@ -8,18 +7,11 @@ interface ProductListProps {
 }
 
 export default function ProductList({ products, onAddToCart }: ProductListProps) {
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-
   const handleAddClick = (product: Product) => {
-    const qty = quantities[product.id] || 1;
-    if (qty > 0 && qty <= product.quantity_in_stock) {
-      onAddToCart(product, qty);
-      setQuantities({ ...quantities, [product.id]: 0 });
+    // Always add a single unit per click to mimic a single-bar Add to Cart
+    if (product.quantity_in_stock > 0) {
+      onAddToCart(product, 1);
     }
-  };
-
-  const handleQuantityChange = (productId: string, value: number) => {
-    setQuantities({ ...quantities, [productId]: Math.max(0, value) });
   };
 
   if (products.length === 0) {
@@ -65,25 +57,11 @@ export default function ProductList({ products, onAddToCart }: ProductListProps)
             </div>
           </div>
           <div className="product-action">
-            <input
-              type="number"
-              min="0"
-              max={product.quantity_in_stock}
-              value={quantities[product.id] || 0}
-              onChange={e =>
-                handleQuantityChange(product.id, parseInt(e.target.value) || 0)
-              }
-              className="quantity-input"
-              disabled={product.quantity_in_stock === 0}
-              placeholder="Qty"
-            />
             <button
               className="add-btn"
               onClick={() => handleAddClick(product)}
-              disabled={
-                product.quantity_in_stock === 0 ||
-                (quantities[product.id] || 0) === 0
-              }
+              disabled={product.quantity_in_stock === 0}
+              aria-label={`Add ${product.name} to cart`}
             >
               Add to Cart
             </button>
