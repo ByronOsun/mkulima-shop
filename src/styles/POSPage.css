@@ -1,5 +1,6 @@
 .pos-page {
   height: 100%;
+  min-height: 0;
 }
 
 .pos-content {
@@ -7,6 +8,8 @@
   grid-template-columns: 1fr 350px;
   gap: 1.5rem;
   height: 100%;
+  min-height: 0;
+  align-items: stretch;
 }
 
 .product-section {
@@ -17,6 +20,7 @@
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
+  min-height: 0;
 }
 
 .product-toolbar-sticky {
@@ -140,15 +144,23 @@
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  min-height: 0;
 }
 
 @media (max-width: 1024px) {
   .pos-content {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 48dvh) minmax(0, 1fr);
   }
 
   .cart-section {
-    max-height: 400px;
+    max-height: none;
+    overflow: auto;
+  }
+
+  .product-section {
+    max-height: none;
+    overflow-y: auto;
   }
 
   .category-products-scroll {
@@ -165,6 +177,11 @@
 @media (max-width: 640px) {
   .product-section {
     padding: 1rem;
+  }
+
+  .pos-content {
+    grid-template-rows: minmax(0, 44dvh) minmax(0, 1fr);
+    gap: 1rem;
   }
 
   .product-toolbar-sticky {

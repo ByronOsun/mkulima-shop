@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Sale } from '../types';
+import { ReceiptData, Sale } from '../types';
 import { supabaseService } from '../services/supabase';
 import '../styles/SalesPage.css';
 
-export default function SalesPage() {
+interface SalesPageProps {
+  onOpenReceipt: (receipt: ReceiptData) => void;
+}
+
+export default function SalesPage({ onOpenReceipt }: SalesPageProps) {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +35,36 @@ export default function SalesPage() {
     acc[sale.payment_method] = (acc[sale.payment_method] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  const buildReceiptFromSale = (sale: Sale): ReceiptData => ({
+    saleId: sale.id,
+    receiptNumber: sale.id.substring(0, 8).toUpperCase(),
+    saleDate: sale.sale_date,
+    paymentMethod: sale.payment_method,
+    totalAmount: sale.total_amount,
+    cashierRole: 'cashier',
+    cashierName: 'Archived Transaction',
+    items: (sale.items || []).map(item => ({
+      productId: item.productId,
+      name: item.product?.name || 'Unknown Item',
+      sku: item.product?.sku || '',
+      quantity: item.quantity,
+      unitPrice: item.unit_price,
+      subtotal: item.subtotal,
+    })),
+  });
+
+  const openReceipt = async (sale: Sale) => {
+    try {
+      const detailedSale = sale.items && sale.items.length > 0 ? sale : await supabaseService.getSaleById(sale.id);
+      if (!detailedSale) {
+        return;
+      }
+      onOpenReceipt(buildReceiptFromSale(detailedSale));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load receipt');
+    }
+  };
 
   if (loading) return <div className="page-loader">Loading sales...</div>;
 
@@ -99,11 +133,12 @@ export default function SalesPage() {
             <thead>
               <tr>
                 <th>Time</th>
-                <th>Sale ID</th>
+                <th>Receipt</th>
                 <th>Items</th>
                 <th>Total Amount</th>
                 <th>Payment Method</th>
                 <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -112,7 +147,7 @@ export default function SalesPage() {
                   <td>
                     {new Date(sale.sale_date).toLocaleTimeString()}
                   </td>
-                  <td className="sale-id">{sale.id.substring(0, 8)}...</td>
+                  <td className="receipt-id">Receipt #{sale.id.substring(0, 8).toUpperCase()}</td>
                   <td>{sale.items?.length || 0} items</td>
                   <td className="amount">
                     {new Intl.NumberFormat('en-KE', {
@@ -125,6 +160,15 @@ export default function SalesPage() {
                     <span className={`status-badge ${sale.status}`}>
                       {sale.status}
                     </span>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="receipt-link-btn"
+                      onClick={() => void openReceipt(sale)}
+                    >
+                      View / Print
+                    </button>
                   </td>
                 </tr>
               ))}

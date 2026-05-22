@@ -59,7 +59,7 @@ function AppContent() {
       case 'inventory':
         return isAdmin ? <InventoryPage /> : null;
       case 'sales':
-        return isAdmin ? <SalesPage /> : null;
+        return isAdmin ? <SalesPage onOpenReceipt={handleReceiptReady} /> : null;
       case 'reports':
         return isAdmin ? <ReportsPage /> : null;
       case 'stock-requisition':

@@ -172,6 +172,30 @@
   color: #666;
 }
 
+.receipt-id {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  font-weight: 700;
+}
+
+.receipt-link-btn {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  background: #f0fdf4;
+  color: var(--primary-dark);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.receipt-link-btn:hover {
+  background: var(--primary);
+  color: white;
+}
+
 .amount {
   font-weight: bold;
   color: var(--primary);
@@ -214,5 +238,10 @@
   .sales-table th,
   .sales-table td {
     padding: 0.75rem 0.5rem;
+  }
+
+  .receipt-link-btn {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.85rem;
   }
 }
