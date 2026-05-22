@@ -280,50 +280,50 @@ function POS() {
               <Badge key={c} variant={category === c ? "default" : "outline"} className="cursor-pointer" onClick={() => setCategory(c)}>{c}</Badge>
             ))}
           </div>
-          <div className="bg-white dark:bg-slate-950 rounded-lg overflow-x-auto border border-slate-200 dark:border-slate-800">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 min-w-max p-3">
+          <div className="bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 p-3">
               {filtered.map((p) => {
                 const out = p.stock_quantity <= 0;
                 const low = p.stock_quantity > 0 && p.stock_quantity < p.low_stock_threshold;
                 const mode = saleModes[p.id] ?? "bottle";
                 const wholesaleDisabled = p.price_wholesale_crate == null || Number(p.price_wholesale_crate) <= 0;
                 return (
-                  <div key={p.id} className={`w-44 sm:w-40 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 transition h-40 flex flex-col justify-between box-border flex-shrink-0 ${out ? "opacity-50" : ""}`}>
-                  <div className="flex justify-between items-start gap-1">
-                    <p className="font-medium text-sm leading-tight">{getDisplayName(p)}</p>
-                    {low && <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">Low</Badge>}
-                    {out && <Badge variant="destructive" className="text-xs">Out</Badge>}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{p.stock_quantity} in stock</p>
-                  {p.discount_price && resolveUnitPrice(Number(p.price), p.discount_price) !== Number(p.price) ? (
-                    <div className="mt-2">
-                      <p className="font-semibold">{fmtKES(resolveUnitPrice(Number(p.price), p.discount_price))}</p>
-                      <p className="text-xs text-muted-foreground line-through">{fmtKES(Number(p.price))}</p>
+                  <div key={p.id} className={`w-full max-w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 transition h-40 flex flex-col justify-between box-border ${out ? "opacity-50" : ""}`}>
+                    <div className="flex justify-between items-start gap-1">
+                      <p className="font-medium text-sm leading-tight">{getDisplayName(p)}</p>
+                      {low && <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">Low</Badge>}
+                      {out && <Badge variant="destructive" className="text-xs">Out</Badge>}
                     </div>
-                  ) : (
-                    <p className="font-semibold mt-2">{fmtKES(Number(p.price))}</p>
-                  )}
-                  {isDepot ? (
-                    <div className="mt-3 space-y-2">
-                      <Select
-                        value={mode}
-                        onValueChange={(value) => setSaleModes((prev) => ({ ...prev, [p.id]: value as typeof mode }))}
-                      >
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bottle">Single bottle</SelectItem>
-                          <SelectItem value="crate-wholesale" disabled={wholesaleDisabled}>Crate (Wholesale)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button className="w-full" size="sm" disabled={out} onClick={() => addProductToCart(p)}>
+                    <p className="text-xs text-muted-foreground mt-1">{p.stock_quantity} in stock</p>
+                    {p.discount_price && resolveUnitPrice(Number(p.price), p.discount_price) !== Number(p.price) ? (
+                      <div className="mt-2">
+                        <p className="font-semibold">{fmtKES(resolveUnitPrice(Number(p.price), p.discount_price))}</p>
+                        <p className="text-xs text-muted-foreground line-through">{fmtKES(Number(p.price))}</p>
+                      </div>
+                    ) : (
+                      <p className="font-semibold mt-2">{fmtKES(Number(p.price))}</p>
+                    )}
+                    {isDepot ? (
+                      <div className="mt-3 space-y-2">
+                        <Select
+                          value={mode}
+                          onValueChange={(value) => setSaleModes((prev) => ({ ...prev, [p.id]: value as typeof mode }))}
+                        >
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bottle">Single bottle</SelectItem>
+                            <SelectItem value="crate-wholesale" disabled={wholesaleDisabled}>Crate (Wholesale)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button className="w-full" size="sm" disabled={out} onClick={() => addProductToCart(p)}>
+                          Add
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button className="w-full mt-3" size="sm" disabled={out} onClick={() => addProductToCart(p)}>
                         Add
                       </Button>
-                    </div>
-                  ) : (
-                    <Button className="w-full mt-3" size="sm" disabled={out} onClick={() => addProductToCart(p)}>
-                      Add
-                    </Button>
-                  )}
+                    )}
                   </div>
                 );
               })}
