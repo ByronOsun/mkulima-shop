@@ -12,8 +12,8 @@ interface POSPageProps {
 export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [category, setCategory] = useState<string>('all');
   const [categories, setCategories] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,9 +102,36 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     }
   };
 
-  const filteredProducts = category === 'all'
-    ? products
-    : products.filter(p => p.category === category);
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
+  const searchedProducts = products.filter(product => {
+    if (!normalizedSearch) return true;
+    return [product.name, product.sku, product.description, product.category]
+      .filter(Boolean)
+      .some(value => value!.toLowerCase().includes(normalizedSearch));
+  });
+
+  const orderedCategories = [
+    ...categories,
+    ...Array.from(new Set(searchedProducts.map(product => product.category).filter(Boolean))),
+  ].filter((value, index, array) => array.indexOf(value) === index);
+
+  const categoryColors = [
+    { bg: '#1f2937', fg: '#ffffff', accent: '#60a5fa' },
+    { bg: '#14532d', fg: '#ffffff', accent: '#4ade80' },
+    { bg: '#7c2d12', fg: '#ffffff', accent: '#fb923c' },
+    { bg: '#4c1d95', fg: '#ffffff', accent: '#c084fc' },
+    { bg: '#0f766e', fg: '#ffffff', accent: '#5eead4' },
+    { bg: '#334155', fg: '#ffffff', accent: '#facc15' },
+  ];
+
+  const groupedCategories = orderedCategories
+    .map((categoryName, index) => ({
+      category: categoryName,
+      color: categoryColors[index % categoryColors.length],
+      products: searchedProducts.filter(product => product.category === categoryName),
+    }))
+    .filter(group => group.products.length > 0);
 
   if (loading) return <div className="page-loader">Loading products...</div>;
 
@@ -112,31 +139,18 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     <div className="pos-page">
       <div className="pos-content">
         <div className="product-section">
-          <div className="section-header">
+          <div className="product-toolbar product-toolbar-sticky">
             <h2>Products</h2>
-            <div className="category-filter">
-              <button
-                className={`category-btn ${category === 'all' ? 'active' : ''}`}
-                onClick={() => setCategory('all')}
-              >
-                All
-              </button>
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  className={`category-btn ${category === cat ? 'active' : ''}`}
-                  onClick={() => setCategory(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            <input
+              type="search"
+              className="product-search"
+              placeholder="Search products, SKU, category..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
           </div>
           {error && <div className="error-message">{error}</div>}
-          <ProductList
-            products={filteredProducts}
-            onAddToCart={addToCart}
-          />
+          <ProductList groupedCategories={groupedCategories} onAddToCart={addToCart} />
         </div>
 
         <div className="cart-section">
