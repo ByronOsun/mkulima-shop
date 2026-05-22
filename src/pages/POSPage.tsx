@@ -16,6 +16,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showMobileCart, setShowMobileCart] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -102,6 +103,11 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     }
   };
 
+  const handleCheckoutSuccess = (receipt: ReceiptData) => {
+    setShowMobileCart(false);
+    onCheckoutSuccess(receipt);
+  };
+
   const normalizedSearch = searchQuery.trim().toLowerCase();
 
   const searchedProducts = products.filter(product => {
@@ -135,12 +141,51 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
 
   if (loading) return <div className="page-loader">Loading products...</div>;
 
+  if (showMobileCart) {
+    return (
+      <div className="pos-page pos-mobile-cart-view">
+        <div className="mobile-cart-header">
+          <button
+            type="button"
+            className="mobile-back-btn"
+            onClick={() => setShowMobileCart(false)}
+          >
+            ← Back to POS
+          </button>
+          <div className="mobile-cart-title">
+            Shopping Cart <span className="mobile-cart-count">({cart.length})</span>
+          </div>
+        </div>
+
+        <div className="mobile-cart-panel">
+          <Cart
+            items={cart}
+            onRemoveItem={removeFromCart}
+            onUpdateQuantity={updateCartItem}
+            onCheckoutSuccess={handleCheckoutSuccess}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pos-page">
       <div className="pos-content">
         <div className="product-section">
           <div className="product-toolbar product-toolbar-sticky">
-            <h2>Products</h2>
+            <div className="product-toolbar-top">
+              <h2>Products</h2>
+              <button
+                type="button"
+                className="cart-icon-btn"
+                onClick={() => setShowMobileCart(true)}
+                aria-label="Open cart"
+              >
+                🛒
+                {cart.length > 0 && <span className="cart-icon-badge">{cart.length}</span>}
+              </button>
+            </div>
             <input
               type="search"
               className="product-search"
@@ -150,7 +195,9 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
             />
           </div>
           {error && <div className="error-message">{error}</div>}
-          <ProductList groupedCategories={groupedCategories} onAddToCart={addToCart} />
+          <div className="product-list-scroll">
+            <ProductList groupedCategories={groupedCategories} onAddToCart={addToCart} />
+          </div>
         </div>
 
         <div className="cart-section">
@@ -158,7 +205,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
             items={cart}
             onRemoveItem={removeFromCart}
             onUpdateQuantity={updateCartItem}
-            onCheckoutSuccess={onCheckoutSuccess}
+            onCheckoutSuccess={handleCheckoutSuccess}
           />
         </div>
       </div>

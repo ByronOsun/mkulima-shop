@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Cart } from "@/components/Cart";
+import { useCart } from "@/lib/useCart";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import { fmtKES, resolveUnitPrice, usernameFromEmail } from "@/lib/format";
 import type { CartItem, CartCrateItem, CartBottleItem, Product } from "@/lib/types";
@@ -70,7 +71,7 @@ function POS() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [products, setProducts] = useState<Product[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useCart();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
