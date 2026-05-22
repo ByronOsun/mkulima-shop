@@ -161,6 +161,59 @@
   border-bottom: none;
 }
 
+.cashier-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cashier-label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cashier-select {
+  min-width: 220px;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.btn {
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.92;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.btn-secondary:hover {
+  background: #d1d5db;
+}
+
 .error-message {
   background: #fee;
   border: 1px solid #fcc;
@@ -212,5 +265,14 @@
 
   .report-section h3 {
     font-size: 1.1rem;
+  }
+
+  .cashier-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cashier-select {
+    min-width: 100%;
   }
 }

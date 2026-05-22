@@ -17,7 +17,7 @@ export const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 type DemoSaleInput = Pick<Sale, 'sale_date' | 'total_amount' | 'payment_method' | 'status'> &
-  Partial<Pick<Sale, 'customer_name' | 'customer_contact' | 'amount_paid' | 'payment_channel'>>;
+  Partial<Pick<Sale, 'customer_name' | 'customer_contact' | 'amount_paid' | 'payment_channel' | 'cashier_name' | 'cashier_role'>>;
 type DemoSaleItemInput = Omit<SaleItem, 'id' | 'created_at'>;
 type DemoStockMovementInput = Omit<StockMovement, 'id' | 'created_at'>;
 type DemoProductInput = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
@@ -260,6 +260,15 @@ const filterSalesByDateRange = (sales: Sale[], startDate: string, endDate: strin
   return sales.filter(sale => sale.sale_date >= start && sale.sale_date <= end);
 };
 
+const isMissingColumnError = (error: any) => {
+  const message = String(error?.message || error?.details || error || '').toLowerCase();
+  return message.includes('column') && (message.includes('does not exist') || message.includes('not found'));
+};
+
+const stripUndefined = <T extends Record<string, any>>(value: T) => {
+  return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as Partial<T>;
+};
+
 export const supabaseService = {
   async getProducts(): Promise<Product[]> {
     if (supabase) {
@@ -341,13 +350,26 @@ export const supabaseService = {
   async createSale(saleData: DemoSaleInput): Promise<Sale> {
     if (supabase) {
       try {
-        const normalizedSale = {
+        const normalizedSale = stripUndefined({
           // ensure amount_paid is always present for DB NOT NULL constraint
           ...saleData,
           amount_paid: saleData.amount_paid ?? 0,
-        } as unknown as DemoSaleInput;
+        });
 
-        const { data, error } = await supabase.from('sales').insert([normalizedSale]).select().single();
+        let { data, error } = await supabase.from('sales').insert([normalizedSale]).select().single();
+        if (error && isMissingColumnError(error)) {
+          const fallbackSale = stripUndefined({
+            sale_date: saleData.sale_date,
+            total_amount: saleData.total_amount,
+            payment_method: saleData.payment_method,
+            status: saleData.status,
+            customer_name: saleData.customer_name,
+            customer_contact: saleData.customer_contact,
+            amount_paid: saleData.amount_paid ?? 0,
+            payment_channel: saleData.payment_channel,
+          });
+          ({ data, error } = await supabase.from('sales').insert([fallbackSale]).select().single());
+        }
         if (!error && data) {
           return data as Sale;
         }

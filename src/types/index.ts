@@ -33,6 +33,8 @@ export interface Sale {
   customer_contact?: string;
   amount_paid?: number;
   payment_channel?: string;
+  cashier_name?: string;
+  cashier_role?: UserRole;
   created_at: string;
   updated_at: string;
 }

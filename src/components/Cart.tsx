@@ -61,6 +61,8 @@ export default function Cart({
         customer_contact: paymentMethod === 'credit' ? customerContact || undefined : undefined,
         amount_paid: amountPaid || undefined,
         payment_channel: paymentMethod === 'credit' && amountPaid > 0 ? initialPaymentMethod : undefined,
+        cashier_name: user?.fullName || user?.username || 'Unknown User',
+        cashier_role: user?.role ?? 'cashier',
       } as any);
 
       // Create sale items

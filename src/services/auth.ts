@@ -1,5 +1,6 @@
 import { User } from '../types';
 import { supabase } from './supabase';
+import { compare } from 'bcryptjs';
 
 const AUTH_STORAGE_KEY = 'mkulima-auth-user';
 
@@ -32,6 +33,26 @@ const loadCurrentUser = (): User | null => {
 
 const normalizeUsername = (username: string) => username.trim().toLowerCase();
 
+const extractLoginName = (value: string) => {
+  const normalized = normalizeUsername(value);
+  if (normalized.includes('@')) {
+    const [localPart] = normalized.split('@');
+    return localPart.split('.')[0] || normalized;
+  }
+
+  return normalized.split('.')[0] || normalized;
+};
+
+const deriveRoleFromUsername = (value: string) => {
+  const normalized = normalizeUsername(value);
+  const [, maybeRole] = normalized.split('.');
+  if (maybeRole === 'cashier' || maybeRole === 'admin') {
+    return maybeRole;
+  }
+
+  return null;
+};
+
 const hashPin = async (pin: string) => {
   if (!globalThis.crypto?.subtle) {
     throw new Error('Browser crypto is unavailable');
@@ -44,15 +65,21 @@ const hashPin = async (pin: string) => {
     .join('');
 };
 
+const verifyPin = async (pin: string, storedHash: string) => {
+  if (storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$') || storedHash.startsWith('$2y$')) {
+    return compare(pin, storedHash);
+  }
+
+  return hashPin(pin).then(hashed => hashed === storedHash);
+};
+
 export const authService = {
   async login(username: string, pin: string): Promise<User> {
     if (!supabase) {
       throw new Error('Authentication service is not configured');
     }
 
-    const lookupUsername = normalizeUsername(username);
-    const hashedPin = await hashPin(pin);
-
+    const lookupUsername = extractLoginName(username);
     const { data, error } = await supabase
       .from('staff_users')
       .select('id, username, pin_hash, role, display_name, created_at, is_active')
@@ -64,14 +91,17 @@ export const authService = {
       throw new Error(error.message);
     }
 
-    if (!data || data.pin_hash !== hashedPin) {
+    if (!data || !(await verifyPin(pin, data.pin_hash))) {
       throw new Error('Invalid username or PIN');
     }
+
+    const inferredRole = deriveRoleFromUsername(username);
+    const effectiveRole = (inferredRole ?? data.role) as User['role'];
 
     const user: User = {
       id: data.id,
       username: data.username,
-      role: data.role,
+      role: effectiveRole,
       fullName: data.display_name,
       created_at: data.created_at,
       is_active: data.is_active,
