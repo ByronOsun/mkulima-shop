@@ -280,14 +280,15 @@ function POS() {
               <Badge key={c} variant={category === c ? "default" : "outline"} className="cursor-pointer" onClick={() => setCategory(c)}>{c}</Badge>
             ))}
           </div>
-          <div className="grid grid-cols-3 gap-3 auto-rows-fr">
-            {filtered.map((p) => {
-              const out = p.stock_quantity <= 0;
-              const low = p.stock_quantity > 0 && p.stock_quantity < p.low_stock_threshold;
-              const mode = saleModes[p.id] ?? "bottle";
-              const wholesaleDisabled = p.price_wholesale_crate == null || Number(p.price_wholesale_crate) <= 0;
-              return (
-                <Card key={p.id} className={`p-3 transition h-40 flex flex-col justify-between ${out ? "opacity-50" : ""}`}>
+          <div className="bg-white dark:bg-slate-950 rounded-lg overflow-x-auto border border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-3 gap-4 min-w-fit p-3">
+              {filtered.map((p) => {
+                const out = p.stock_quantity <= 0;
+                const low = p.stock_quantity > 0 && p.stock_quantity < p.low_stock_threshold;
+                const mode = saleModes[p.id] ?? "bottle";
+                const wholesaleDisabled = p.price_wholesale_crate == null || Number(p.price_wholesale_crate) <= 0;
+                return (
+                  <div key={p.id} className={`w-40 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 transition h-40 flex flex-col justify-between box-border ${out ? "opacity-50" : ""}`}>
                   <div className="flex justify-between items-start gap-1">
                     <p className="font-medium text-sm leading-tight">{getDisplayName(p)}</p>
                     {low && <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">Low</Badge>}
@@ -323,10 +324,11 @@ function POS() {
                       Add
                     </Button>
                   )}
-                </Card>
-              );
-            })}
-            {filtered.length === 0 && <p className="col-span-full text-center text-sm text-muted-foreground py-12">No products match.</p>}
+                  </div>
+                );
+              })}
+              {filtered.length === 0 && <p className="col-span-full text-center text-sm text-muted-foreground py-12">No products match.</p>}
+            </div>
           </div>
         </div>
         <div className="hidden lg:block lg:sticky lg:top-4 lg:self-start lg:h-[calc(100vh-2rem)]">
