@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Category, Product } from '../types';
 import { supabaseService } from '../services/supabase';
+import { capturePhoto } from '../services/camera';
 import '../styles/AddProductForm.css';
 
 interface AddProductFormProps {
@@ -24,6 +25,18 @@ export default function AddProductForm({
   const [quantityPerDozen, setQuantityPerDozen] = useState('12');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
+
+  const handleCapturePhoto = async () => {
+    try {
+      const dataUrl = await capturePhoto();
+      if (dataUrl) {
+        setImageUrl(dataUrl);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to capture photo');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +83,7 @@ export default function AddProductForm({
         quantity_in_stock: finalQuantity,
         sku: `SKU-${Date.now()}`,
         description: '',
+        image_url: imageUrl,
         reorder_level: Math.max(Math.round(finalQuantity * 0.2), 1),
       });
 
@@ -78,6 +92,7 @@ export default function AddProductForm({
       setPrice('');
       setQuantity('');
       setQuantityPerDozen('12');
+      setImageUrl('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add product');
     } finally {
@@ -137,6 +152,23 @@ export default function AddProductForm({
               disabled={loading}
               className="form-input"
             />
+          </div>
+
+          <div className="form-group">
+            <label>Product Photo</label>
+            <div className="photo-capture">
+              {imageUrl && (
+                <img src={imageUrl} alt="Product preview" className="photo-preview" />
+              )}
+              <button
+                type="button"
+                className="btn-cancel"
+                onClick={handleCapturePhoto}
+                disabled={loading}
+              >
+                📷 {imageUrl ? 'Retake Photo' : 'Take Photo'}
+              </button>
+            </div>
           </div>
 
           <div className="quantity-section">

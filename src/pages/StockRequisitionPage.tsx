@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { jsPDF } from 'jspdf';
 import { Product } from '../types';
 import { supabaseService } from '../services/supabase';
 import '../styles/StockRequisitionPage.css';
@@ -144,12 +143,15 @@ export default function StockRequisitionPage() {
     }
   };
 
-  const downloadRequisitionPdf = () => {
+  const downloadRequisitionPdf = async () => {
     if (stagedProducts.length === 0) {
       setError('No staged items to download.');
       return;
     }
 
+    // jsPDF (and its html2canvas/DOMPurify dependencies) are loaded on demand
+    // to keep them out of the initial bundle for low-end devices.
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();

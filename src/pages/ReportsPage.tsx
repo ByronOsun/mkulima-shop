@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { jsPDF } from 'jspdf';
 import { DaySalesReport, Sale, UserRole } from '../types';
 import { supabaseService } from '../services/supabase';
 import '../styles/ReportsPage.css';
@@ -178,7 +177,10 @@ export default function ReportsPage() {
     }
   };
 
-  const downloadReportPdf = () => {
+  const downloadReportPdf = async () => {
+    // jsPDF (and its html2canvas/DOMPurify dependencies) are loaded on demand
+    // to keep them out of the initial bundle for low-end devices.
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();

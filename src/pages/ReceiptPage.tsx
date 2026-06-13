@@ -1,4 +1,5 @@
 import { ReceiptData } from '../types';
+import { printReceipt } from '../services/printer';
 import '../styles/ReceiptPage.css';
 
 interface ReceiptPageProps {
@@ -20,8 +21,6 @@ export default function ReceiptPage({ receipt, onBackToPos }: ReceiptPageProps) 
     );
   }
 
-  const handlePrint = () => window.print();
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
@@ -41,57 +40,51 @@ export default function ReceiptPage({ receipt, onBackToPos }: ReceiptPageProps) 
     }).format(new Date(date));
   };
 
-  const padCenter = (text: string, width: number = 40) => {
+  // 32 columns matches the printable width of a standard 58mm thermal
+  // roll (the size used by built-in POS printers like the Sunmi V2 Pro).
+  // Sending wider lines causes the printer to wrap them onto extra lines,
+  // wasting paper.
+  const WIDTH = 32;
+
+  const padCenter = (text: string, width: number = WIDTH) => {
     const padding = Math.max(0, width - text.length);
     const left = Math.floor(padding / 2);
     return ' '.repeat(left) + text + ' '.repeat(padding - left);
   };
 
-  const padRight = (left: string, right: string, width: number = 40) => {
+  const padRight = (left: string, right: string, width: number = WIDTH) => {
     const gap = Math.max(1, width - left.length - right.length);
     return left + ' '.repeat(gap) + right;
   };
 
-  const receiptText = `${padCenter('=' .repeat(40), 40)}
-${padCenter('WAKULIMA AGROVET FARM LTD', 40)}
-${padCenter('===============================', 40)}
-${padCenter('Off Kisumu-Kakamega Road', 40)}
-${padCenter('Kiboswa, Kenya', 40)}
-${padCenter('Tel: 0722 843 544', 40)}
-${padCenter('-'.repeat(40), 40)}
-${padCenter(`Receipt #${receipt.receiptNumber.toString().padStart(6, '0')}`, 40)}
-${padCenter(formatDate(receipt.saleDate), 40)}
-${padCenter('-'.repeat(40), 40)}
-${padCenter('SALES RECEIPT', 40)}
-${padCenter('-'.repeat(40), 40)}
-${padCenter(`Cashier Role: ${receipt.cashierRole.toUpperCase()}`, 40)}
-${padCenter(`Cashier Name: ${receipt.cashierName}`, 40)}
-${padCenter('-'.repeat(40), 40)}
-
-${padRight('ITEM', 'QTY', 40)}
-${padRight('UNIT PRICE', 'TOTAL', 40)}
-${padCenter('-'.repeat(40), 40)}
+  const receiptText = `${padCenter('='.repeat(WIDTH))}
+${padCenter('WAKULIMA AGROVET FARM LTD')}
+${padCenter('Off Kisumu-Kakamega Road')}
+${padCenter('Kiboswa, Kenya')}
+${padCenter('Tel: 0722 843 544')}
+${padCenter('-'.repeat(WIDTH))}
+Receipt #${receipt.receiptNumber.toString().padStart(6, '0')}
+${formatDate(receipt.saleDate)}
+Cashier: ${receipt.cashierName} (${receipt.cashierRole.toUpperCase()})
+${padCenter('-'.repeat(WIDTH))}
 ${receipt.items
   .map(
     (item) =>
-      `${item.name.substring(0, 27).padEnd(27)}\n${padRight(
+      `${item.name.substring(0, WIDTH)}\n${padRight(
         `${item.quantity} x ${formatCurrency(item.unitPrice)}`,
-        formatCurrency(item.subtotal),
-        40
+        formatCurrency(item.subtotal)
       )}`
   )
   .join('\n')}
-${padCenter('-'.repeat(40), 40)}
+${padCenter('-'.repeat(WIDTH))}
+${padRight('TOTAL:', formatCurrency(receipt.totalAmount))}
+${padRight('PAYMENT:', receipt.paymentMethod.toUpperCase())}
+${padCenter('='.repeat(WIDTH))}
+${padCenter('Thank you for shopping with us!')}
+${padCenter('Visit us again soon')}
+${padCenter('='.repeat(WIDTH))}`;
 
-${padRight('TOTAL:', formatCurrency(receipt.totalAmount), 40)}
-${padRight('PAYMENT:', receipt.paymentMethod.toUpperCase(), 40)}
-${padCenter('-'.repeat(40), 40)}
-
-${padCenter('Thank you for shopping with us!', 40)}
-${padCenter('Visit us again soon', 40)}
-${padCenter('-'.repeat(40), 40)}
-${padCenter(formatDate(new Date()), 40)}
-${padCenter('=' .repeat(40), 40)}`;
+  const handlePrint = () => printReceipt(receiptText);
 
   return (
     <div className="receipt-page">
