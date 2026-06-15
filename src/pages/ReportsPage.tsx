@@ -118,65 +118,6 @@ export default function ReportsPage() {
     return cashierOptions.find(option => option.key === selectedCashierKey)?.name || 'Unknown';
   }, [cashierOptions, selectedCashierKey]);
 
-  const generatePrintableReport = () => {
-    const rows = filteredSales.map(sale => {
-      const items = (sale.items || []).map(item => `${item.product?.name || 'Item'} x ${item.quantity}`).join('; ');
-      return `<tr><td>${new Date(sale.sale_date).toLocaleTimeString()}</td><td>${sale.id.substring(0, 8).toUpperCase()}</td><td>${getCashierName(sale)}</td><td>${items}</td><td>${formatCurrency(sale.total_amount)}</td><td>${sale.payment_method}</td></tr>`;
-    }).join('');
-
-    const html = `
-      <html>
-        <head>
-          <title>Cashier Report - ${selectedCashierLabel} - ${selectedDate}</title>
-          <style>
-            body { font-family: Arial, Helvetica, sans-serif; padding: 20px; color: #1f2937; }
-            .header { text-align: center; margin-bottom: 18px; }
-            .title { margin: 0; font-size: 22px; font-weight: 800; }
-            .subtitle { margin-top: 6px; font-size: 13px; color: #555; }
-            .meta { margin-top: 4px; font-size: 13px; color: #555; }
-            table { width: 100%; border-collapse: collapse; margin-top: 18px; }
-            th, td { padding: 8px 10px; border: 1px solid #d1d5db; text-align: left; vertical-align: top; }
-            th { background: #2c3e50; color: #fff; }
-            .small { font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1 class="title">${COMPANY_NAME}</h1>
-            <div class="subtitle">Point of Sale System</div>
-            <div class="meta">${COMPANY_ADDRESS}</div>
-            <div class="meta">${COMPANY_CONTACT}</div>
-            <div class="meta"><strong>Cashier Report:</strong> ${selectedCashierLabel}</div>
-            <div class="meta small">Date: ${selectedDate}</div>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Receipt</th>
-                <th>Cashier</th>
-                <th>Items Sold</th>
-                <th>Amount</th>
-                <th>Payment Method</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-        </body>
-      </html>`;
-
-    const win = window.open('', '_blank', 'width=1100,height=800');
-    if (win) {
-      win.document.write(html);
-      win.document.close();
-      win.focus();
-      win.print();
-    }
-  };
-
   const downloadReportPdf = async () => {
     // jsPDF (and its html2canvas/DOMPurify dependencies) are loaded on demand
     // to keep them out of the initial bundle for low-end devices.
@@ -373,9 +314,6 @@ export default function ReportsPage() {
                 </option>
               ))}
             </select>
-            <button className="btn btn-secondary" onClick={generatePrintableReport}>
-              Open Printable
-            </button>
             <button className="btn btn-primary" onClick={downloadReportPdf}>
               Download PDF
             </button>

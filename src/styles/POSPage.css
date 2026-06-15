@@ -217,6 +217,13 @@
   min-height: 0;
 }
 
+.pos-credit-checkout-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
 .mobile-cart-header {
   display: flex;
   align-items: center;

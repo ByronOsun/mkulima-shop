@@ -349,16 +349,6 @@ create table if not exists public.staff_users (
 create index if not exists idx_staff_users_username on public.staff_users(username);
 create index if not exists idx_staff_users_role on public.staff_users(role);
 
-insert into public.staff_users (username, pin_hash, role, display_name)
-values
-  ('admin', encode(digest('123456', 'sha256'), 'hex'), 'admin', 'Administrator'),
-  ('john.wakulima', encode(digest('111111', 'sha256'), 'hex'), 'cashier', 'John Wakulima'),
-  ('mary.kipchoge', encode(digest('222222', 'sha256'), 'hex'), 'cashier', 'Mary Kipchoge')
-on conflict (username) do update set
-  pin_hash = excluded.pin_hash,
-  role = excluded.role,
-  display_name = excluded.display_name,
-  is_active = true,
-  updated_at = now();
+-- Staff accounts are managed in supabase/staff_users.sql, not here.
 
 commit;

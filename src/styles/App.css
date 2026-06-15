@@ -40,6 +40,8 @@ body {
 .app {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
   min-height: 100dvh;
   height: 100dvh;
   background: var(--light);
@@ -146,6 +148,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 100vh;
   min-height: 100dvh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }

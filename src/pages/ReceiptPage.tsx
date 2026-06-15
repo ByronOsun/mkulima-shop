@@ -60,7 +60,7 @@ export default function ReceiptPage({ receipt, onBackToPos }: ReceiptPageProps) 
   const receiptText = `${padCenter('='.repeat(WIDTH))}
 ${padCenter('WAKULIMA AGROVET FARM LTD')}
 ${padCenter('Off Kisumu-Kakamega Road')}
-${padCenter('Kiboswa, Kenya')}
+${padCenter('Kisumu, Kiboswa')}
 ${padCenter('Tel: 0722 843 544')}
 ${padCenter('-'.repeat(WIDTH))}
 Receipt #${receipt.receiptNumber.toString().padStart(6, '0')}
@@ -81,7 +81,8 @@ ${padRight('TOTAL:', formatCurrency(receipt.totalAmount))}
 ${padRight('PAYMENT:', receipt.paymentMethod.toUpperCase())}
 ${padCenter('='.repeat(WIDTH))}
 ${padCenter('Thank you for shopping with us!')}
-${padCenter('Visit us again soon')}
+${padCenter('='.repeat(WIDTH))}
+${padCenter('NEXORA Technologies')}
 ${padCenter('='.repeat(WIDTH))}`;
 
   const handlePrint = () => printReceipt(receiptText);

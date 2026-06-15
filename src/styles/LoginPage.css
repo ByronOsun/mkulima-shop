@@ -1,6 +1,7 @@
 /* Minimal mobile-first login page */
 
 .login-page {
+  min-height: 100vh;
   min-height: 100dvh;
   display: grid;
   place-items: center;
@@ -121,19 +122,21 @@
 .pin-keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.6rem;
-  margin-top: 0.4rem;
+  gap: 0.9rem;
+  margin-top: 0.6rem;
 }
 
 .keypad-btn {
   border: 1.5px solid #d8dbe3;
-  border-radius: 10px;
-  padding: 0.85rem 0;
-  font-size: 1.1rem;
+  border-radius: 12px;
+  padding: 1.1rem 0;
+  min-height: 60px;
+  font-size: 1.4rem;
   font-weight: 600;
   color: #243047;
   background: #f9fafb;
   cursor: pointer;
+  touch-action: manipulation;
   transition: background 0.15s ease, transform 0.15s ease;
 }
 
@@ -151,7 +154,7 @@
 }
 
 .keypad-btn-secondary {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   color: #6b7280;
 }
 
@@ -173,6 +176,15 @@
   .login-button {
     padding-top: 0.75rem;
     padding-bottom: 0.75rem;
+  }
+
+  .pin-keypad {
+    gap: 0.75rem;
+  }
+
+  .keypad-btn {
+    min-height: 56px;
+    font-size: 1.3rem;
   }
 }
 

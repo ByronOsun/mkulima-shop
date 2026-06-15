@@ -3,6 +3,7 @@ import { CartItem, Product, ReceiptData } from '../types';
 import { supabaseService } from '../services/supabase';
 import ProductList from '../components/ProductList';
 import Cart from '../components/Cart';
+import CreditCheckout from '../components/CreditCheckout';
 import '../styles/POSPage.css';
 
 interface POSPageProps {
@@ -17,6 +18,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
+  const [showCreditCheckout, setShowCreditCheckout] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -105,6 +107,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
 
   const handleCheckoutSuccess = (receipt: ReceiptData) => {
     setShowMobileCart(false);
+    setShowCreditCheckout(false);
     onCheckoutSuccess(receipt);
   };
 
@@ -141,6 +144,18 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
 
   if (loading) return <div className="page-loader">Loading products...</div>;
 
+  if (showCreditCheckout) {
+    return (
+      <div className="pos-page pos-credit-checkout-view">
+        <CreditCheckout
+          items={cart}
+          onBack={() => setShowCreditCheckout(false)}
+          onCheckoutSuccess={handleCheckoutSuccess}
+        />
+      </div>
+    );
+  }
+
   if (showMobileCart) {
     return (
       <div className="pos-page pos-mobile-cart-view">
@@ -163,6 +178,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
             onRemoveItem={removeFromCart}
             onUpdateQuantity={updateCartItem}
             onCheckoutSuccess={handleCheckoutSuccess}
+            onCreditCheckout={() => setShowCreditCheckout(true)}
           />
         </div>
       </div>
@@ -206,6 +222,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
             onRemoveItem={removeFromCart}
             onUpdateQuantity={updateCartItem}
             onCheckoutSuccess={handleCheckoutSuccess}
+            onCreditCheckout={() => setShowCreditCheckout(true)}
           />
         </div>
       </div>

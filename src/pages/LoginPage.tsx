@@ -80,12 +80,12 @@ export default function LoginPage() {
             <input
               id="pin"
               type="password"
-              inputMode="numeric"
+              inputMode="none"
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH))}
-              autoComplete="current-password"
+              readOnly
+              onKeyDown={(e) => e.preventDefault()}
+              autoComplete="off"
               disabled={loading}
-              autoFocus
             />
           </div>
 
