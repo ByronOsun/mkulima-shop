@@ -40,6 +40,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginWithPin = async (pin: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const currentUser = await authService.loginByPin(pin);
+      setUser(currentUser);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     authService.logout();
     setUser(null);
@@ -51,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     error,
     login,
+    loginWithPin,
     logout,
     isAuthenticated: user !== null,
   };

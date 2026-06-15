@@ -130,6 +130,7 @@ export interface AuthContext {
   loading: boolean;
   error: string | null;
   login: (username: string, pin: string) => Promise<void>;
+  loginWithPin: (pin: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }

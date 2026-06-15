@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/LoginPage.css';
 
+const PIN_LENGTH = 6;
+
 export default function LoginPage() {
-  const { login, loading, error: authError } = useAuth();
+  const { login, loginWithPin, loading, error: authError } = useAuth();
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -12,21 +14,35 @@ export default function LoginPage() {
     e.preventDefault();
     setLocalError(null);
 
-    if (!username.trim()) {
-      setLocalError('Username is required.');
-      return;
-    }
-
     if (!/^\d{6}$/.test(pin)) {
       setLocalError('PIN must be 6 digits.');
       return;
     }
 
     try {
-      await login(username.trim(), pin);
+      if (username.trim()) {
+        await login(username.trim(), pin);
+      } else {
+        await loginWithPin(pin);
+      }
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Login failed');
     }
+  };
+
+  const handleKeypadDigit = (digit: string) => {
+    if (loading) return;
+    setPin(prev => (prev + digit).slice(0, PIN_LENGTH));
+  };
+
+  const handleKeypadBackspace = () => {
+    if (loading) return;
+    setPin(prev => prev.slice(0, -1));
+  };
+
+  const handleKeypadClear = () => {
+    if (loading) return;
+    setPin('');
   };
 
   const displayError = localError || authError;
@@ -43,7 +59,7 @@ export default function LoginPage() {
         <form className="login-form" onSubmit={handleSubmit}>
           {displayError && <div className="form-error">{displayError}</div>}
 
-          <div className="form-group">
+          <div className="form-group hidden-field">
             <label htmlFor="username">Username</label>
             <input
               id="username"
@@ -55,7 +71,7 @@ export default function LoginPage() {
               autoCorrect="off"
               spellCheck={false}
               disabled={loading}
-              autoFocus
+              tabIndex={-1}
             />
           </div>
 
@@ -66,15 +82,55 @@ export default function LoginPage() {
               type="password"
               inputMode="numeric"
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH))}
               autoComplete="current-password"
               disabled={loading}
+              autoFocus
             />
           </div>
 
           <button className="login-button" type="submit" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
           </button>
+
+          <div className="pin-keypad" role="group" aria-label="PIN keypad">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(digit => (
+              <button
+                key={digit}
+                type="button"
+                className="keypad-btn"
+                onClick={() => handleKeypadDigit(digit)}
+                disabled={loading}
+              >
+                {digit}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="keypad-btn keypad-btn-secondary"
+              onClick={handleKeypadBackspace}
+              disabled={loading}
+              aria-label="Backspace"
+            >
+              ⌫
+            </button>
+            <button
+              type="button"
+              className="keypad-btn"
+              onClick={() => handleKeypadDigit('0')}
+              disabled={loading}
+            >
+              0
+            </button>
+            <button
+              type="button"
+              className="keypad-btn keypad-btn-secondary"
+              onClick={handleKeypadClear}
+              disabled={loading}
+            >
+              Clear
+            </button>
+          </div>
         </form>
       </div>
     </div>

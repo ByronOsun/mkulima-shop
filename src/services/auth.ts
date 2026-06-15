@@ -111,6 +111,42 @@ export const authService = {
     return user;
   },
 
+  async loginByPin(pin: string): Promise<User> {
+    if (!supabase) {
+      throw new Error('Authentication service is not configured');
+    }
+
+    const { data, error } = await supabase
+      .from('staff_users')
+      .select('id, username, pin_hash, role, display_name, created_at, is_active')
+      .eq('is_active', true);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    for (const candidate of data ?? []) {
+      if (await verifyPin(pin, candidate.pin_hash)) {
+        const inferredRole = deriveRoleFromUsername(candidate.username);
+        const effectiveRole = (inferredRole ?? candidate.role) as User['role'];
+
+        const user: User = {
+          id: candidate.id,
+          username: candidate.username,
+          role: effectiveRole,
+          fullName: candidate.display_name,
+          created_at: candidate.created_at,
+          is_active: candidate.is_active,
+        };
+
+        saveCurrentUser(user);
+        return user;
+      }
+    }
+
+    throw new Error('Invalid PIN');
+  },
+
   logout(): void {
     saveCurrentUser(null);
   },
