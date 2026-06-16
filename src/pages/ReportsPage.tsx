@@ -10,7 +10,7 @@ type CashierOption = {
   label: string;
 };
 
-const COMPANY_NAME = 'MKULIMA AGROVET FARM LTD';
+const COMPANY_NAME = '';
 const COMPANY_ADDRESS = 'Off Kisumu-Kakamega Road, Kiboswa, Kenya';
 const COMPANY_CONTACT = 'Tel: 0722 843 544';
 

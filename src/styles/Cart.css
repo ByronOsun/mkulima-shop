@@ -72,6 +72,29 @@
   font-weight: 600;
 }
 
+.qty-btn {
+  padding: 0.45rem 1rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1.3rem;
+  line-height: 1;
+  transition: all 0.2s ease;
+  min-width: 40px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qty-btn:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 2px 4px rgba(46, 204, 113, 0.3);
+}
+
 .remove-btn {
   padding: 0.4rem 0.6rem;
   background: var(--danger);

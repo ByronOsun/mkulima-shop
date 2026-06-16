@@ -139,7 +139,7 @@ export default function InventoryPage() {
         <table>
           <thead>
             <tr>
-              <th>SKU</th>
+              <th className="sku-col">SKU</th>
               <th>Product Name</th>
               <th>Category</th>
               <th>Unit Price</th>
@@ -155,7 +155,7 @@ export default function InventoryPage() {
               <tr key={product.id} className={
                 product.quantity_in_stock <= product.reorder_level ? 'low-stock' : ''
               }>
-                <td>{product.sku}</td>
+                <td className="sku-col">{product.sku}</td>
                 <td>
                   <strong>{product.name}</strong>
                   {product.description && (

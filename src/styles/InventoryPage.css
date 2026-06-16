@@ -305,3 +305,8 @@
     font-size: 0.75rem;
   }
 }
+
+/* Hide SKU column from the inventory table */
+.sku-col {
+  display: none;
+}

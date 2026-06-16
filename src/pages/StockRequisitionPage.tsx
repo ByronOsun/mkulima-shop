@@ -169,7 +169,7 @@ export default function StockRequisitionPage() {
     // Header
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('MKULIMA AGROVET', margin, y);
+    doc.text('Stock Requisition', margin, y);
     y += 6;
 
     doc.setFont('helvetica', 'normal');

@@ -81,7 +81,6 @@ function AppContent() {
     <div className="app">
       <header className="app-header">
         <div className="header-left">
-          <h1 className="app-title">Mkulima Agrovet POS</h1>
           <p className="app-subtitle">Point of Sale System</p>
         </div>
         <div className="header-center">

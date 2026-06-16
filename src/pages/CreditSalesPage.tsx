@@ -151,7 +151,7 @@ export default function CreditSalesPage() {
     };
 
     const receiptText = `${padCenter('='.repeat(40), 40)}
-${padCenter('MKULIMA AGROVET POS', 40)}
+${padCenter('POS System', 40)}
 ${padCenter('Point of Sale System', 40)}
 ${padCenter('='.repeat(40), 40)}
 ${padCenter('Off Kisumu-Kakamega Road', 40)}

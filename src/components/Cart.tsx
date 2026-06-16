@@ -76,6 +76,13 @@ export default function Cart({
                 <p className="item-sku">{item.product.sku}</p>
               </div>
               <div className="item-controls">
+                <button
+                  className="qty-btn"
+                  onClick={() => onUpdateQuantity(item.productId, Math.max(1, item.quantity - 1))}
+                  title="Decrease quantity"
+                >
+                  −
+                </button>
                 <input
                   type="number"
                   min="1"
@@ -89,6 +96,13 @@ export default function Cart({
                   }
                   className="qty-input"
                 />
+                <button
+                  className="qty-btn"
+                  onClick={() => onUpdateQuantity(item.productId, Math.min(item.product.quantity_in_stock, item.quantity + 1))}
+                  title="Increase quantity"
+                >
+                  +
+                </button>
                 <button
                   className="remove-btn"
                   onClick={() => onRemoveItem(item.productId)}
