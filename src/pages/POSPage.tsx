@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { CartItem, Product, ReceiptData } from '../types';
 import { getProductsCached, getCategoriesCached } from '../services/offlineService';
 import ProductList from '../components/ProductList';
@@ -25,31 +25,23 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     loadCategories();
   }, []);
 
-  const mountedRef = useRef(true);
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
-
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getProductsCached(fresh => {
-        if (mountedRef.current) setProducts(fresh);
-      });
-      if (mountedRef.current) setProducts(data || []);
+      const data = await getProductsCached(fresh => setProducts(fresh));
+      setProducts(data || []);
     } catch (err) {
-      if (mountedRef.current)
-        setError(err instanceof Error ? err.message : 'Failed to load products');
+      setError(err instanceof Error ? err.message : 'Failed to load products');
     } finally {
-      if (mountedRef.current) setLoading(false);
+      setLoading(false);
     }
   };
 
   const loadCategories = async () => {
     try {
       const categoryData = await getCategoriesCached();
-      if (mountedRef.current && categoryData) {
-        setCategories(categoryData.map(c => c.name));
-      }
+      if (categoryData) setCategories(categoryData.map(c => c.name));
     } catch (err) {
       console.error('Failed to load categories:', err);
     }
@@ -114,12 +106,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     setCart([]);
     setShowMobileCart(false);
     setShowCreditCheckout(false);
-    // Refresh product list from cache so stock counts stay accurate after sale.
-    getProductsCached(fresh => {
-      if (mountedRef.current) setProducts(fresh);
-    }).then(data => {
-      if (mountedRef.current) setProducts(data);
-    }).catch(() => {});
+    getProductsCached(fresh => setProducts(fresh)).catch(() => {});
     onCheckoutSuccess(receipt);
   };
 
