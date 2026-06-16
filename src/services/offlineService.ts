@@ -3,49 +3,84 @@ import { db } from './localDb';
 import type { Product, Category, ReceiptData } from '../types';
 import type { CompleteSaleParams } from './checkout';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Race any promise against a ms timeout; resolves to fallback on timeout. */
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([p, new Promise<T>(res => setTimeout(() => res(fallback), ms))]);
+}
+
+/** Read products from IndexedDB; returns [] if DB is slow or unavailable. */
+async function readCachedProducts(): Promise<Product[]> {
+  try {
+    return await withTimeout(db.products.orderBy('name').toArray(), 800, []);
+  } catch { return []; }
+}
+
+async function readCachedCategories(): Promise<Category[]> {
+  try {
+    return await withTimeout(db.categories.orderBy('name').toArray(), 800, []);
+  } catch { return []; }
+}
+
+/** Write to IndexedDB in the background — never blocks the caller. */
+function cacheProducts(fresh: Product[]) {
+  db.products.clear()
+    .then(() => db.products.bulkPut(fresh.map(p => ({ ...p, _cached_at: Date.now() }))))
+    .catch(() => {});
+}
+
+function cacheCategories(fresh: Category[]) {
+  db.categories.clear()
+    .then(() => db.categories.bulkPut(fresh.map(c => ({ ...c, _cached_at: Date.now() }))))
+    .catch(() => {});
+}
+
 // ─── Product / Category cache-first loading ───────────────────────────────────
 
 /**
- * Returns products from IndexedDB immediately (sub-millisecond), then
- * refreshes from Supabase in the background. Call onRefreshed to push the
- * updated list into component state when the network response arrives.
+ * Stale-while-revalidate:
+ * • If IndexedDB has products → return them immediately, refresh from
+ *   Supabase in the background, call onRefreshed when done.
+ * • If IndexedDB is empty → wait for Supabase, write to cache, return.
+ * • Dexie reads are capped at 800 ms; writes are fire-and-forget.
  */
 export async function getProductsCached(
   onRefreshed?: (fresh: Product[]) => void,
 ): Promise<Product[]> {
-  const cached = await db.products.orderBy('name').toArray();
+  const cached = await readCachedProducts();
 
-  const networkFetch = navigator.onLine
-    ? supabaseService.getProducts()
-        .then(async fresh => {
-          const now = Date.now();
-          await db.products.clear();
-          await db.products.bulkPut(fresh.map(p => ({ ...p, _cached_at: now })));
-          onRefreshed?.(fresh);
-          return fresh;
-        })
-        .catch(() => cached)
-    : Promise.resolve(cached);
+  if (navigator.onLine) {
+    const networkFetch = supabaseService.getProducts()
+      .then(fresh => { cacheProducts(fresh); return fresh; })
+      .catch(() => cached);
 
-  // Serve cache immediately; if empty, wait for network.
-  if (cached.length > 0) return cached;
-  return networkFetch;
+    if (cached.length > 0) {
+      // Serve cache now; push update when network arrives.
+      networkFetch.then(fresh => onRefreshed?.(fresh)).catch(() => {});
+      return cached;
+    }
+
+    const fresh = await networkFetch;
+    onRefreshed?.(fresh);
+    return fresh;
+  }
+
+  return cached;
 }
 
 export async function getCategoriesCached(): Promise<Category[]> {
-  const cached = await db.categories.orderBy('name').toArray();
+  const cached = await readCachedCategories();
 
   if (navigator.onLine) {
     supabaseService.getCategories()
-      .then(async fresh => {
-        await db.categories.clear();
-        await db.categories.bulkPut(fresh.map(c => ({ ...c, _cached_at: Date.now() })));
-      })
+      .then(fresh => cacheCategories(fresh))
       .catch(() => {});
+    if (cached.length > 0) return cached;
+    return supabaseService.getCategories();
   }
 
-  if (cached.length > 0) return cached;
-  return navigator.onLine ? supabaseService.getCategories() : [];
+  return cached;
 }
 
 // ─── Offline sale creation ─────────────────────────────────────────────────────
