@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sale } from '../types';
 import { supabaseService, supabase } from '../services/supabase';
+import { printOrShareReceipt } from '../services/pdf';
 import '../styles/CreditSalesPage.css';
 
 export default function CreditSalesPage() {
@@ -134,7 +135,7 @@ export default function CreditSalesPage() {
     }
   };
 
-  const printReceipt = () => {
+  const printReceipt = async () => {
     if (!latestReceipt) {
       return;
     }
@@ -189,13 +190,7 @@ ${padCenter('='.repeat(40), 40)}`;
       </html>
     `;
 
-    const receiptWindow = window.open('', '_blank', 'width=360,height=700');
-    if (receiptWindow) {
-      receiptWindow.document.write(content);
-      receiptWindow.document.close();
-      receiptWindow.focus();
-      receiptWindow.print();
-    }
+    await printOrShareReceipt(receiptText, content, 'settlement-receipt.pdf');
   };
 
   const handlePayment = async () => {

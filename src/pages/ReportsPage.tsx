@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DaySalesReport, Sale, UserRole } from '../types';
 import { supabaseService } from '../services/supabase';
+import { savePdf } from '../services/pdf';
 import '../styles/ReportsPage.css';
 
 type CashierOption = {
@@ -231,7 +232,7 @@ export default function ReportsPage() {
     }
 
     const fileName = `cashier-report-${selectedCashierName.replace(/\s+/g, '_')}-${selectedDate}.pdf`;
-    doc.save(fileName);
+    await savePdf(doc, fileName);
   };
 
   if (loadingReport) return <div className="page-loader">Loading report...</div>;

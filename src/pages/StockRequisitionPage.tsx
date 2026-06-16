@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Product } from '../types';
 import { supabaseService } from '../services/supabase';
+import { savePdf } from '../services/pdf';
 import '../styles/StockRequisitionPage.css';
 
 
@@ -259,7 +260,7 @@ export default function StockRequisitionPage() {
     y += 4;
     doc.text(`Generated: ${now.toLocaleString()}`, margin, y);
 
-    doc.save(`stock-requisition-${now.toISOString().split('T')[0]}.pdf`);
+    await savePdf(doc, `stock-requisition-${now.toISOString().split('T')[0]}.pdf`);
   };
 
   if (loading) return <div className="page-loader">Loading products...</div>;
