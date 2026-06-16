@@ -1,5 +1,6 @@
 import { CartItem, ReceiptData, User } from '../types';
 import { supabaseService } from './supabase';
+import { completeSaleOffline } from './offlineService';
 
 export type SalePaymentMethod = 'cash' | 'card' | 'mobile_money' | 'credit';
 
@@ -14,16 +15,17 @@ export interface CompleteSaleParams {
   initialPaymentMethod?: 'cash' | 'mobile_money';
 }
 
-export async function completeSale({
-  items,
-  total,
-  paymentMethod,
-  user,
-  customerName,
-  customerContact,
-  amountPaid = 0,
-  initialPaymentMethod,
-}: CompleteSaleParams): Promise<ReceiptData> {
+export async function completeSale(params: CompleteSaleParams): Promise<ReceiptData> {
+  if (!navigator.onLine) {
+    return completeSaleOffline(params);
+  }
+
+  const {
+    items, total, paymentMethod, user,
+    customerName, customerContact,
+    amountPaid = 0, initialPaymentMethod,
+  } = params;
+
   const status: 'completed' | 'pending' =
     paymentMethod === 'credit' && amountPaid < total ? 'pending' : 'completed';
 

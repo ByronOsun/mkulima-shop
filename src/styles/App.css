@@ -144,6 +144,27 @@ body {
   font-size: 1rem;
 }
 
+.network-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.42rem 1rem;
+  letter-spacing: 0.02em;
+}
+
+.network-banner.offline {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.network-banner.syncing {
+  background: #d97706;
+  color: #fff;
+}
+
 .app-loading {
   display: flex;
   align-items: center;

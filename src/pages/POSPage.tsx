@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CartItem, Product, ReceiptData } from '../types';
-import { supabaseService } from '../services/supabase';
+import { getProductsCached, getCategoriesCached } from '../services/offlineService';
 import ProductList from '../components/ProductList';
 import Cart from '../components/Cart';
 import CreditCheckout from '../components/CreditCheckout';
@@ -25,25 +25,30 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     loadCategories();
   }, []);
 
+  const mountedRef = useRef(true);
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await supabaseService.getProducts();
-      setProducts(data || []);
+      const data = await getProductsCached(fresh => {
+        if (mountedRef.current) setProducts(fresh);
+      });
+      if (mountedRef.current) setProducts(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load products');
+      if (mountedRef.current)
+        setError(err instanceof Error ? err.message : 'Failed to load products');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   const loadCategories = async () => {
     try {
-      const categoryData = await supabaseService.getCategories();
-      if (categoryData) {
-        const categoryNames = categoryData.map(c => c.name);
-        setCategories(categoryNames);
+      const categoryData = await getCategoriesCached();
+      if (mountedRef.current && categoryData) {
+        setCategories(categoryData.map(c => c.name));
       }
     } catch (err) {
       console.error('Failed to load categories:', err);
@@ -106,8 +111,15 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
   };
 
   const handleCheckoutSuccess = (receipt: ReceiptData) => {
+    setCart([]);
     setShowMobileCart(false);
     setShowCreditCheckout(false);
+    // Refresh product list from cache so stock counts stay accurate after sale.
+    getProductsCached(fresh => {
+      if (mountedRef.current) setProducts(fresh);
+    }).then(data => {
+      if (mountedRef.current) setProducts(data);
+    }).catch(() => {});
     onCheckoutSuccess(receipt);
   };
 

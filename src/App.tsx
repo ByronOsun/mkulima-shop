@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import './styles/App.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
 import LoginPage from './pages/LoginPage';
 import POSPage from './pages/POSPage';
 import InventoryPage from './pages/InventoryPage';
@@ -74,6 +75,7 @@ function AppContent() {
 
   const isCashier = user?.role === 'cashier';
   const isAdmin = user?.role === 'admin';
+  const { isOnline, pendingCount, syncing } = useNetworkStatus();
 
   const renderPage = () => {
     switch (currentPage) {
@@ -102,6 +104,20 @@ function AppContent() {
 
   return (
     <div className="app">
+      {!isOnline && (
+        <div className="network-banner offline">
+          {syncing
+            ? `Syncing ${pendingCount} sale${pendingCount !== 1 ? 's' : ''}…`
+            : pendingCount > 0
+              ? `Offline — ${pendingCount} sale${pendingCount !== 1 ? 's' : ''} pending sync`
+              : 'Offline'}
+        </div>
+      )}
+      {isOnline && syncing && (
+        <div className="network-banner syncing">
+          Syncing {pendingCount} sale{pendingCount !== 1 ? 's' : ''}…
+        </div>
+      )}
       <header className="app-header">
         <div className="header-left">
           <p className="app-subtitle">Point of Sale System</p>
