@@ -14,6 +14,35 @@ import CreditSalesPage from './pages/CreditSalesPage';
 import { ReceiptData } from './types';
 
 type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'stock-requisition' | 'finance' | 'receipt' | 'history' | 'credit-sales';
+
+function LoadingScreen() {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let current = 0;
+    const timer = setInterval(() => {
+      const remaining = 95 - current;
+      const step = Math.max(0.5, remaining * 0.12);
+      current = Math.min(95, current + step);
+      setProgress(Math.round(current));
+      if (current >= 95) clearInterval(timer);
+    }, 120);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="app-loading">
+      <div className="loading-content">
+        <div className="loading-logo">🌾</div>
+        <div className="loading-bar-track">
+          <div className="loading-bar-fill" style={{ width: `${progress}%` }} />
+        </div>
+        <span className="loading-pct">{progress}%</span>
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
   const { user, logout, isAuthenticated, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageType>('pos');
@@ -26,13 +55,7 @@ function AppContent() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="app-loading">
-        <div className="loading-spinner">
-          <span>Loading...</span>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!isAuthenticated) {
