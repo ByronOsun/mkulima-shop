@@ -49,6 +49,7 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState<PageType>('pos');
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [time, setTime] = useState(new Date());
+  const { isOnline, pendingCount, syncing } = useNetworkStatus();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -75,7 +76,6 @@ function AppContent() {
 
   const isCashier = user?.role === 'cashier';
   const isAdmin = user?.role === 'admin';
-  const { isOnline, pendingCount, syncing } = useNetworkStatus();
 
   const renderPage = () => {
     switch (currentPage) {
