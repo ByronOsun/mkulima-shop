@@ -25,16 +25,10 @@ export default function Cart({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [discountInput, setDiscountInput] = useState('');
-  const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('fixed');
 
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
 
-  const discountAmount = (() => {
-    const val = parseFloat(discountInput) || 0;
-    if (val <= 0) return 0;
-    if (discountType === 'percent') return Math.min(subtotal, (subtotal * Math.min(val, 100)) / 100);
-    return Math.min(subtotal, val);
-  })();
+  const discountAmount = Math.min(subtotal, Math.max(0, parseFloat(discountInput) || 0));
 
   const total = Math.max(0, subtotal - discountAmount);
 
@@ -67,7 +61,6 @@ export default function Cart({
       });
 
       setDiscountInput('');
-      setDiscountType('fixed');
       onCheckoutSuccess(receipt);
       setSuccess(`Sale completed! Sale ID: ${receipt.saleId.substring(0, 8)}...`);
     } catch (err) {
@@ -150,30 +143,21 @@ export default function Cart({
 
             <div className="discount-row">
               <span className="discount-label">Discount</span>
-              <div className="discount-controls">
-                <input
-                  type="number"
-                  min="0"
-                  className="discount-input"
-                  placeholder="0"
-                  value={discountInput}
-                  onChange={e => setDiscountInput(e.target.value)}
-                  disabled={processingPayment}
-                />
-                <button
-                  className={`disc-type-btn${discountType === 'fixed' ? ' active' : ''}`}
-                  onClick={() => setDiscountType('fixed')}
-                  type="button"
-                >Ksh</button>
-                <button
-                  className={`disc-type-btn${discountType === 'percent' ? ' active' : ''}`}
-                  onClick={() => setDiscountType('percent')}
-                  type="button"
-                >%</button>
-              </div>
               {discountAmount > 0 && (
                 <span className="discount-saved">−{fmt(discountAmount)}</span>
               )}
+            </div>
+            <div className="discount-controls">
+              <input
+                type="number"
+                min="0"
+                className="discount-input"
+                placeholder="0"
+                value={discountInput}
+                onChange={e => setDiscountInput(e.target.value)}
+                disabled={processingPayment}
+              />
+              <span className="disc-ksh-label">Ksh</span>
             </div>
 
             <div className="summary-row total">
