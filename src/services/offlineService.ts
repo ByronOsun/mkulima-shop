@@ -87,7 +87,7 @@ export async function getCategoriesCached(): Promise<Category[]> {
 
 export async function completeSaleOffline(params: CompleteSaleParams): Promise<ReceiptData> {
   const {
-    items, total, paymentMethod, user,
+    items, total, discountAmount = 0, paymentMethod, user,
     customerName, customerContact,
     amountPaid = 0, initialPaymentMethod,
   } = params;
@@ -138,6 +138,7 @@ export async function completeSaleOffline(params: CompleteSaleParams): Promise<R
     saleDate: now,
     paymentMethod,
     totalAmount: total,
+    discountAmount: discountAmount > 0 ? discountAmount : undefined,
     cashierRole: user?.role ?? 'cashier',
     cashierName: user?.fullName || user?.username || 'Unknown',
     items: items.map(item => ({

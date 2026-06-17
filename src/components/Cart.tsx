@@ -56,6 +56,7 @@ export default function Cart({
       const receipt = await completeSale({
         items,
         total,
+        discountAmount,
         paymentMethod,
         user,
       });

@@ -185,6 +185,13 @@ function AppContent() {
                   <span className="nav-icon">📋</span>
                   <span className="nav-label">Stock</span>
                 </button>
+              <button
+                className={`nav-btn ${currentPage === 'credit-sales' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('credit-sales')}
+              >
+                <span className="nav-icon">📑</span>
+                <span className="nav-label">Credit</span>
+              </button>
             </>
           )}
           {isCashier && (

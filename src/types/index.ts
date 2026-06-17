@@ -106,6 +106,7 @@ export interface ReceiptData {
   saleDate: string;
   paymentMethod: 'cash' | 'card' | 'mobile_money' | 'credit';
   totalAmount: number;
+  discountAmount?: number;
   cashierRole: UserRole;
   cashierName: string;
   items: ReceiptItem[];

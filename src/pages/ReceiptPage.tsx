@@ -76,12 +76,14 @@ ${receipt.items
   )
   .join('\n')}
 ${padCenter('-'.repeat(WIDTH))}
-${padRight('TOTAL:', formatCurrency(receipt.totalAmount))}
+${receipt.discountAmount && receipt.discountAmount > 0
+  ? `${padRight('SUBTOTAL:', formatCurrency(receipt.totalAmount + receipt.discountAmount))}\n${padRight('DISCOUNT:', `-${formatCurrency(receipt.discountAmount)}`)}\n`
+  : ''}${padRight('TOTAL:', formatCurrency(receipt.totalAmount))}
 ${padRight('PAYMENT:', receipt.paymentMethod.toUpperCase())}
 ${padCenter('='.repeat(WIDTH))}
 ${padCenter('Thank you for shopping with us!')}
 ${padCenter('='.repeat(WIDTH))}
-${padCenter(' VIZIA Techonologies')}
+${padCenter(' VIZIA Technologies')}
 ${padCenter('='.repeat(WIDTH))}`;
 
   const handlePrint = () => printReceipt(receiptText);

@@ -7,6 +7,7 @@ export type SalePaymentMethod = 'cash' | 'card' | 'mobile_money' | 'credit';
 export interface CompleteSaleParams {
   items: CartItem[];
   total: number;
+  discountAmount?: number;
   paymentMethod: SalePaymentMethod;
   user: User | null;
   customerName?: string;
@@ -21,7 +22,7 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
   }
 
   const {
-    items, total, paymentMethod, user,
+    items, total, discountAmount = 0, paymentMethod, user,
     customerName, customerContact,
     amountPaid = 0, initialPaymentMethod,
   } = params;
@@ -63,6 +64,7 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
     saleDate: sale.sale_date,
     paymentMethod,
     totalAmount: total,
+    discountAmount: discountAmount > 0 ? discountAmount : undefined,
     cashierRole: user?.role ?? 'cashier',
     cashierName: user?.fullName || user?.username || 'Unknown User',
     items: items.map(item => ({
