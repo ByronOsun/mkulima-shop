@@ -159,6 +159,73 @@
   font-size: 0.95rem;
 }
 
+.discount-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.discount-label {
+  font-size: 0.9rem;
+  color: var(--text);
+  white-space: nowrap;
+  min-width: 56px;
+}
+
+.discount-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 1;
+}
+
+.discount-input {
+  width: 0;
+  flex: 1;
+  min-width: 0;
+  padding: 0.38rem 0.5rem;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: right;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.discount-input:focus {
+  border-color: var(--primary);
+}
+
+.disc-type-btn {
+  padding: 0.38rem 0.55rem;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: #f9fafb;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.disc-type-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.discount-saved {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #dc2626;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
 .summary-row:last-child {
   margin-bottom: 0;
 }

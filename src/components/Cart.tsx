@@ -24,8 +24,22 @@ export default function Cart({
   const [processingPayment, setProcessingPayment] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [discountInput, setDiscountInput] = useState('');
+  const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('fixed');
 
-  const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+
+  const discountAmount = (() => {
+    const val = parseFloat(discountInput) || 0;
+    if (val <= 0) return 0;
+    if (discountType === 'percent') return Math.min(subtotal, (subtotal * Math.min(val, 100)) / 100);
+    return Math.min(subtotal, val);
+  })();
+
+  const total = Math.max(0, subtotal - discountAmount);
+
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(n);
 
   const handlePaymentMethodChange = (value: string) => {
     if (value === 'credit') {
@@ -52,6 +66,8 @@ export default function Cart({
         user,
       });
 
+      setDiscountInput('');
+      setDiscountType('fixed');
       onCheckoutSuccess(receipt);
       setSuccess(`Sale completed! Sale ID: ${receipt.saleId.substring(0, 8)}...`);
     } catch (err) {
@@ -113,21 +129,11 @@ export default function Cart({
               </div>
               <div className="item-pricing">
                 <div className="price-row">
-                  <span>
-                    {new Intl.NumberFormat('en-KE', {
-                      style: 'currency',
-                      currency: 'KES',
-                    }).format(item.unit_price)}
-                  </span>
+                  <span>{fmt(item.unit_price)}</span>
                   <span>×</span>
                   <span>{item.quantity}</span>
                 </div>
-                <div className="subtotal">
-                  {new Intl.NumberFormat('en-KE', {
-                    style: 'currency',
-                    currency: 'KES',
-                  }).format(item.subtotal)}
-                </div>
+                <div className="subtotal">{fmt(item.subtotal)}</div>
               </div>
             </div>
           ))
@@ -139,21 +145,40 @@ export default function Cart({
           <div className="cart-summary">
             <div className="summary-row">
               <span>Subtotal:</span>
-              <span>
-                {new Intl.NumberFormat('en-KE', {
-                  style: 'currency',
-                  currency: 'KES',
-                }).format(total)}
-              </span>
+              <span>{fmt(subtotal)}</span>
             </div>
+
+            <div className="discount-row">
+              <span className="discount-label">Discount</span>
+              <div className="discount-controls">
+                <input
+                  type="number"
+                  min="0"
+                  className="discount-input"
+                  placeholder="0"
+                  value={discountInput}
+                  onChange={e => setDiscountInput(e.target.value)}
+                  disabled={processingPayment}
+                />
+                <button
+                  className={`disc-type-btn${discountType === 'fixed' ? ' active' : ''}`}
+                  onClick={() => setDiscountType('fixed')}
+                  type="button"
+                >Ksh</button>
+                <button
+                  className={`disc-type-btn${discountType === 'percent' ? ' active' : ''}`}
+                  onClick={() => setDiscountType('percent')}
+                  type="button"
+                >%</button>
+              </div>
+              {discountAmount > 0 && (
+                <span className="discount-saved">−{fmt(discountAmount)}</span>
+              )}
+            </div>
+
             <div className="summary-row total">
               <span>Total:</span>
-              <span className="total-amount">
-                {new Intl.NumberFormat('en-KE', {
-                  style: 'currency',
-                  currency: 'KES',
-                }).format(total)}
-              </span>
+              <span className="total-amount">{fmt(total)}</span>
             </div>
           </div>
 
