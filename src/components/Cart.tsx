@@ -99,10 +99,7 @@ export default function Cart({
       {showScanner && products && onAddToCart && (
         <BarcodeScannerModal
           products={products}
-          onAddToCart={(product, qty) => {
-            onAddToCart(product, qty);
-            setShowScanner(false);
-          }}
+          onAddToCart={onAddToCart}
           onClose={() => setShowScanner(false)}
         />
       )}
@@ -128,7 +125,6 @@ export default function Cart({
                 <input
                   type="number"
                   min="1"
-                  max={item.product.quantity_in_stock}
                   value={item.quantity}
                   onChange={e =>
                     onUpdateQuantity(
@@ -140,7 +136,7 @@ export default function Cart({
                 />
                 <button
                   className="qty-btn"
-                  onClick={() => onUpdateQuantity(item.productId, Math.min(item.product.quantity_in_stock, item.quantity + 1))}
+                  onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
                   title="Increase quantity"
                 >
                   +

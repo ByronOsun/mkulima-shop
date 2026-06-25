@@ -4,6 +4,7 @@ import { getProductsCached, getCategoriesCached } from '../services/offlineServi
 import ProductList from '../components/ProductList';
 import Cart from '../components/Cart';
 import CreditCheckout from '../components/CreditCheckout';
+import { playBeep } from '../utils/beep';
 import '../styles/POSPage.css';
 
 interface POSPageProps {
@@ -47,7 +48,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
             p.sku?.toLowerCase() === code.toLowerCase() ||
             p.name.toLowerCase() === code.toLowerCase()
           );
-          if (match) addToCart(match, 1);
+          if (match) { playBeep('success'); addToCart(match, 1); }
         }
         return;
       }
@@ -88,57 +89,42 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
   };
 
   const addToCart = (product: Product, quantity: number) => {
-    const existingItem = cart.find(item => item.productId === product.id);
-
-    if (existingItem) {
-      const newQuantity = existingItem.quantity + quantity;
-      if (newQuantity <= product.quantity_in_stock) {
-        setCart(cart.map(item =>
+    setCart(prev => {
+      const existing = prev.find(item => item.productId === product.id);
+      if (existing) {
+        const newQty = existing.quantity + quantity;
+        return prev.map(item =>
           item.productId === product.id
-            ? {
-                ...item,
-                quantity: newQuantity,
-                subtotal: newQuantity * item.unit_price,
-              }
+            ? { ...item, quantity: newQty, subtotal: newQty * item.unit_price }
             : item
-        ));
+        );
       }
-    } else {
-      if (quantity <= product.quantity_in_stock) {
-        setCart([
-          ...cart,
-          {
-            productId: product.id,
-            product,
-            quantity,
-            unit_price: product.unit_price,
-            subtotal: quantity * product.unit_price,
-          },
-        ]);
-      }
-    }
+      return [
+        ...prev,
+        {
+          productId: product.id,
+          product,
+          quantity,
+          unit_price: product.unit_price,
+          subtotal: quantity * product.unit_price,
+        },
+      ];
+    });
   };
 
   const removeFromCart = (productId: string) => {
-    setCart(cart.filter(item => item.productId !== productId));
+    setCart(prev => prev.filter(item => item.productId !== productId));
   };
 
   const updateCartItem = (productId: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(productId);
     } else {
-      const product = products.find(p => p.id === productId);
-      if (product && quantity <= product.quantity_in_stock) {
-        setCart(cart.map(item =>
-          item.productId === productId
-            ? {
-                ...item,
-                quantity,
-                subtotal: quantity * item.unit_price,
-              }
-            : item
-        ));
-      }
+      setCart(prev => prev.map(item =>
+        item.productId === productId
+          ? { ...item, quantity, subtotal: quantity * item.unit_price }
+          : item
+      ));
     }
   };
 

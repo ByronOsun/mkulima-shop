@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Product } from '../types';
+import { playBeep } from '../utils/beep';
 import '../styles/BarcodeScannerModal.css';
 
-// BarcodeDetector is a Chrome/WebView native API — not yet in TypeScript's lib
 declare global {
   class BarcodeDetector {
     constructor(options?: { formats: string[] });
@@ -17,7 +17,10 @@ interface Props {
   onClose: () => void;
 }
 
-type ScanState = 'scanning' | 'found' | 'not-found' | 'unavailable';
+interface Toast {
+  type: 'added' | 'not-found';
+  message: string;
+}
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(n);
@@ -29,12 +32,18 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
   const detectorRef = useRef<BarcodeDetector | null>(null);
   const scanActiveRef = useRef(true);
   const frameCounter = useRef(0);
+  const cooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [scanState, setScanState] = useState<ScanState>('scanning');
-  const [foundProduct, setFoundProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [scannedCode, setScannedCode] = useState('');
+  // Always-current refs so the tick loop (created once) never uses stale closures
+  const productsRef = useRef(products);
+  const onAddToCartRef = useRef(onAddToCart);
+  useEffect(() => { productsRef.current = products; }, [products]);
+  useEffect(() => { onAddToCartRef.current = onAddToCart; }, [onAddToCart]);
+
+  const [unavailable, setUnavailable] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
+  const [toast, setToast] = useState<Toast | null>(null);
 
   const stopStream = useCallback(() => {
     cancelAnimationFrame(animFrameRef.current);
@@ -44,40 +53,53 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
 
   const handleClose = useCallback(() => {
     scanActiveRef.current = false;
+    if (cooldownRef.current) clearTimeout(cooldownRef.current);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     stopStream();
     onClose();
   }, [stopStream, onClose]);
 
-  const lookupByCode = useCallback((code: string): Product | undefined => {
-    const normalized = code.trim().toLowerCase();
-    return products.find(p =>
-      p.sku?.toLowerCase() === normalized ||
-      p.name.toLowerCase() === normalized
-    );
-  }, [products]);
+  const showToast = useCallback((t: Toast, durationMs: number) => {
+    setToast(t);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), durationMs);
+  }, []);
 
+  const resumeScanning = useCallback((delayMs: number) => {
+    if (cooldownRef.current) clearTimeout(cooldownRef.current);
+    cooldownRef.current = setTimeout(() => {
+      scanActiveRef.current = true;
+    }, delayMs);
+  }, []);
+
+  // Reads from refs — always sees the latest products and onAddToCart
   const handleDetectedCode = useCallback((raw: string) => {
     if (!scanActiveRef.current) return;
     scanActiveRef.current = false;
 
     const code = raw.trim();
-    setScannedCode(code);
+    const normalized = code.toLowerCase();
+    const product = productsRef.current.find(p =>
+      p.sku?.toLowerCase() === normalized ||
+      p.name.toLowerCase() === normalized
+    );
 
-    const product = lookupByCode(code);
     if (product) {
-      setFoundProduct(product);
-      setQuantity(1);
-      setScanState('found');
+      playBeep('success');
+      onAddToCartRef.current(product, 1);
+      showToast({ type: 'added', message: `${product.name}  ${fmt(product.unit_price)}` }, 2200);
+      resumeScanning(2500);
     } else {
-      setScanState('not-found');
+      playBeep('error');
+      showToast({ type: 'not-found', message: `Not found: "${code}"` }, 2500);
+      resumeScanning(2500);
     }
-  }, [lookupByCode]);
+  }, [showToast, resumeScanning]); // no products/onAddToCart deps — read from refs
 
-  // Start camera + detection loop
   useEffect(() => {
     if (!('BarcodeDetector' in window)) {
       setStatusMsg('Camera barcode scanning requires Chrome or a Chromium-based browser.');
-      setScanState('unavailable');
+      setUnavailable(true);
       return;
     }
 
@@ -103,12 +125,12 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
         const tick = async () => {
           if (cancelled || !detectorRef.current || !videoRef.current) return;
 
-          // Sample every ~10 frames (~167 ms at 60 fps) to keep CPU low
           frameCounter.current++;
           if (scanActiveRef.current && frameCounter.current % 10 === 0 &&
               videoRef.current.readyState >= 2) {
             try {
               const hits = await detectorRef.current.detect(videoRef.current);
+              // handleDetectedCode reads productsRef/onAddToCartRef — always fresh
               if (hits.length > 0 && scanActiveRef.current) {
                 handleDetectedCode(hits[0].rawValue);
               }
@@ -121,7 +143,7 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
         if (!cancelled) {
           const msg = err instanceof Error ? err.message : String(err);
           setStatusMsg(`Camera error: ${msg}`);
-          setScanState('unavailable');
+          setUnavailable(true);
         }
       }
     };
@@ -129,22 +151,11 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
     startCamera();
     return () => {
       cancelled = true;
+      if (cooldownRef.current) clearTimeout(cooldownRef.current);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       stopStream();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const resetToScan = () => {
-    setFoundProduct(null);
-    setScannedCode('');
-    scanActiveRef.current = true;
-    setScanState('scanning');
-  };
-
-  const handleAddToCart = () => {
-    if (!foundProduct) return;
-    onAddToCart(foundProduct, quantity);
-    resetToScan();
-  };
 
   const handleManualSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -167,18 +178,24 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
           <button className="bsm-close" onClick={handleClose} aria-label="Close scanner">✕</button>
         </div>
 
-        {/* Video viewfinder — always in DOM while modal is open so stream stays live */}
-        <div className={`bsm-viewfinder${scanState !== 'scanning' ? ' bsm-viewfinder--idle' : ''}`}>
+        {/* Viewfinder — always live, never dimmed */}
+        <div className="bsm-viewfinder">
           <video ref={videoRef} className="bsm-video" playsInline muted />
-          {scanState === 'scanning' && (
-            <div className="bsm-reticle">
-              <div className="bsm-reticle-inner" />
-              <p className="bsm-hint">Aim at product barcode</p>
+
+          <div className="bsm-reticle">
+            <div className="bsm-reticle-inner" />
+            <p className="bsm-hint">Aim at product barcode</p>
+          </div>
+
+          {toast && (
+            <div className={`bsm-toast bsm-toast--${toast.type}`}>
+              <span className="bsm-toast-icon">{toast.type === 'added' ? '✓' : '✕'}</span>
+              {toast.message}
             </div>
           )}
         </div>
 
-        {scanState === 'unavailable' && (
+        {unavailable && (
           <div className="bsm-status bsm-status--warn">
             <p>{statusMsg || 'Camera unavailable.'}</p>
             <p className="bsm-status-sub">
@@ -188,72 +205,13 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
           </div>
         )}
 
-        {scanState === 'found' && foundProduct && (
-          <div className="bsm-result bsm-result--found">
-            <div className="bsm-product-name">{foundProduct.name}</div>
-            <div className="bsm-product-meta">
-              <span className="bsm-meta-tag">{foundProduct.category}</span>
-              <span className="bsm-meta-sku">SKU {foundProduct.sku}</span>
-            </div>
-            <div className="bsm-product-price">{fmt(foundProduct.unit_price)}</div>
-            <div className="bsm-product-stock">
-              {foundProduct.quantity_in_stock > 0
-                ? `${foundProduct.quantity_in_stock} in stock`
-                : <span className="bsm-out-of-stock">Out of stock</span>}
-            </div>
-            <div className="bsm-qty-row">
-              <button className="bsm-qty-btn" onClick={() => setQuantity(q => Math.max(1, q - 1))}>−</button>
-              <input
-                className="bsm-qty-input"
-                type="number"
-                min={1}
-                max={foundProduct.quantity_in_stock}
-                value={quantity}
-                onChange={e =>
-                  setQuantity(Math.max(1, Math.min(
-                    foundProduct.quantity_in_stock,
-                    parseInt(e.target.value) || 1
-                  )))
-                }
-              />
-              <button
-                className="bsm-qty-btn"
-                onClick={() => setQuantity(q => Math.min(foundProduct.quantity_in_stock, q + 1))}
-              >+</button>
-            </div>
-            <div className="bsm-actions">
-              <button className="bsm-btn-secondary" onClick={resetToScan}>Scan Again</button>
-              <button
-                className="bsm-btn-primary"
-                onClick={handleAddToCart}
-                disabled={foundProduct.quantity_in_stock === 0}
-              >
-                Add to Cart
-              </button>
-            </div>
-          </div>
-        )}
-
-        {scanState === 'not-found' && (
-          <div className="bsm-result bsm-result--not-found">
-            <div className="bsm-not-found-icon">?</div>
-            <div className="bsm-not-found-title">No product found</div>
-            <div className="bsm-not-found-code">"{scannedCode}"</div>
-            <p className="bsm-not-found-hint">
-              Check that the product SKU matches this barcode, or add the product to inventory first.
-            </p>
-            <button className="bsm-btn-secondary" onClick={resetToScan}>Scan Again</button>
-          </div>
-        )}
-
-        {/* Manual / USB scanner fallback — always visible */}
         <form className="bsm-manual" onSubmit={handleManualSubmit}>
           <input
             name="code"
             className="bsm-manual-input"
             placeholder="Barcode / SKU — type or scan here"
             autoComplete="off"
-            autoFocus={scanState === 'unavailable'}
+            autoFocus={unavailable}
           />
           <button type="submit" className="bsm-manual-btn">Look up</button>
         </form>
