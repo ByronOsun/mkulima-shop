@@ -3,7 +3,7 @@ import { supabase, supabaseService } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/SettingsPage.css';
 
-type Tab = 'users' | 'categories' | 'contact' | 'about';
+type Tab = 'users' | 'categories' | 'contact' | 'manual' | 'about';
 
 interface Props {
   onExit: () => void;
@@ -41,6 +41,7 @@ export default function SettingsPage({ onExit }: Props) {
     { key: 'users', icon: '👥', label: 'Users' },
     { key: 'categories', icon: '🏷️', label: 'Categories' },
     { key: 'contact', icon: '📞', label: 'Contact' },
+    { key: 'manual', icon: '📖', label: 'Manual' },
     { key: 'about', icon: 'ℹ️', label: 'About' },
   ];
 
@@ -66,6 +67,7 @@ export default function SettingsPage({ onExit }: Props) {
         {activeTab === 'users' && <UsersTab tenantId={currentUser?.tenant_id} />}
         {activeTab === 'categories' && <CategoriesTab tenantId={currentUser?.tenant_id} />}
         {activeTab === 'contact' && <ContactTab />}
+        {activeTab === 'manual' && <ManualTab />}
         {activeTab === 'about' && <AboutTab />}
       </div>
     </div>
@@ -679,44 +681,402 @@ function ContactTab() {
   );
 }
 
+/* ─── Manual Tab ─────────────────────────────────────────────────── */
+
+function ManualTab() {
+  return (
+    <div className="tab-manual">
+      <div className="manual-header">
+        <h2>VIZIA POS — Product Manual</h2>
+        <div className="manual-meta">
+          <span>Version: 1.0</span>
+          <span>Prepared by: VIZIA Technologies</span>
+          <span>Classification: Internal &amp; Client Use</span>
+        </div>
+      </div>
+
+      <div className="manual-toc">
+        <h3>Table of Contents</h3>
+        <ol>
+          <li>Introduction</li>
+          <li>About VIZIA POS</li>
+          <li>Product Objectives</li>
+          <li>Core Capabilities</li>
+          <li>System Architecture</li>
+          <li>User Roles</li>
+          <li>Functional Modules</li>
+          <li>Operating Procedures</li>
+          <li>Offline Operations</li>
+          <li>Security</li>
+          <li>Reporting &amp; Analytics</li>
+          <li>Administration</li>
+          <li>Backup &amp; Recovery</li>
+          <li>Maintenance</li>
+          <li>Best Practices</li>
+          <li>Troubleshooting</li>
+          <li>Technical Specifications</li>
+          <li>Support Services</li>
+        </ol>
+      </div>
+
+      <div className="manual-section">
+        <h3>1. Introduction</h3>
+        <p>VIZIA POS is an enterprise-grade Point of Sale (POS) and Retail Management System developed by <strong>VIZIA Technologies</strong> to simplify business operations through intelligent automation, secure transaction processing, inventory control, financial management, and business analytics.</p>
+        <p>The platform has been engineered specifically for retailers, wholesalers, agrovets, pharmacies, supermarkets, hardware stores, hospitality businesses, and SMEs requiring reliable operations in both online and offline environments.</p>
+        <p>This manual provides operational guidelines, administrative procedures, security standards, and best practices for effective use of the system.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>2. About VIZIA POS</h3>
+        <p>VIZIA POS is a modern cloud-enabled retail management platform designed to streamline the complete sales lifecycle.</p>
+        <p>The system combines:</p>
+        <ul>
+          <li>Point of Sale</li>
+          <li>Inventory Management</li>
+          <li>Customer Management</li>
+          <li>Credit Sales</li>
+          <li>Financial Tracking</li>
+          <li>Business Reporting</li>
+          <li>Offline Transaction Processing</li>
+          <li>Cloud Synchronization</li>
+        </ul>
+        <p>The application is available as a Web Application, Android POS Application, Tablet Interface, and Desktop Browser.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>3. Product Objectives</h3>
+        <p>VIZIA POS aims to:</p>
+        <ul>
+          <li>Digitize retail operations</li>
+          <li>Reduce operational costs</li>
+          <li>Improve inventory accuracy</li>
+          <li>Enhance transaction speed</li>
+          <li>Support offline business continuity</li>
+          <li>Provide real-time business intelligence</li>
+          <li>Improve customer service</li>
+          <li>Increase profitability through better reporting</li>
+        </ul>
+      </div>
+
+      <div className="manual-section">
+        <h3>4. Core Capabilities</h3>
+
+        <h4>Sales Processing</h4>
+        <p>The system enables cashiers to process sales quickly using an intuitive checkout interface supporting multiple payment methods.</p>
+        <p>Supported payment methods: Cash, Mobile Money, Card, Credit Accounts.</p>
+        <p>Features include product search, barcode support, quantity adjustments, discounts, receipt generation, and customer information capture.</p>
+
+        <h4>Inventory Management</h4>
+        <p>Inventory is automatically updated after every successful transaction. Capabilities include product registration, category management, price management, stock monitoring, low-stock alerts, stock valuation, and product image management.</p>
+
+        <h4>Customer Credit Management</h4>
+        <p>Businesses may issue goods on credit while maintaining complete customer records. The module supports customer profiles, outstanding balances, partial payments, payment history, and credit statements.</p>
+
+        <h4>Financial Management</h4>
+        <p>Administrators can monitor business finances through integrated expense tracking. Expense categories include Salaries, Rent, Utilities, Logistics, Investments, and Miscellaneous Expenses. The system automatically calculates estimated profit by comparing sales revenue against recorded expenses.</p>
+
+        <h4>Business Reporting</h4>
+        <p>VIZIA POS provides comprehensive business intelligence dashboards including Daily Sales, Weekly Sales, Monthly Revenue, Top Selling Products, Cashier Performance, Payment Method Analysis, Profit Overview, and Inventory Valuation. Reports can be exported for management review and accounting purposes.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>5. System Architecture</h3>
+        <p>VIZIA POS follows a modern multi-tier architecture:</p>
+        <div className="manual-arch">
+          <div className="arch-layer"><strong>Presentation Layer</strong> — Responsive Web Interface &amp; Android Application</div>
+          <div className="arch-arrow">↓</div>
+          <div className="arch-layer"><strong>Application Layer</strong> — Business Logic, Authentication &amp; Transaction Engine</div>
+          <div className="arch-arrow">↓</div>
+          <div className="arch-layer"><strong>Data Layer</strong> — Local Offline Database &amp; Cloud Database</div>
+          <div className="arch-arrow">↓</div>
+          <div className="arch-layer"><strong>Cloud Services</strong> — Secure Synchronization, Reporting &amp; Backup</div>
+        </div>
+        <p>This architecture ensures high availability, scalability, and reliable offline operations.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>6. User Roles</h3>
+        <h4>System Administrator</h4>
+        <p>Responsibilities: user creation, staff management, product management, reports, expenses, inventory, system configuration, and business analytics.</p>
+        <h4>Cashier</h4>
+        <p>Responsibilities: sales processing, customer payments, credit sales, transaction history, and receipt printing. Cashiers cannot modify administrative settings.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>7. Functional Modules</h3>
+        <div className="manual-modules">
+          <div className="module-item"><strong>Login &amp; Authentication</strong> — Secure PIN-based authentication verifies authorized users before granting system access.</div>
+          <div className="module-item"><strong>Dashboard</strong> — Displays today's sales, business performance, notifications, pending synchronization, and low-stock alerts.</div>
+          <div className="module-item"><strong>Point of Sale</strong> — Supports product lookup, cart management, discounts, multiple payment methods, receipt generation, and customer identification.</div>
+          <div className="module-item"><strong>Inventory</strong> — Provides product creation, editing, stock adjustments, categorization, and inventory valuation.</div>
+          <div className="module-item"><strong>Credit Sales</strong> — Allows businesses to sell on credit, record payments, track outstanding balances, and generate customer statements.</div>
+          <div className="module-item"><strong>Reports</strong> — Includes Daily, Monthly, Product Performance, Sales Analysis, Cash Flow, and Payment Analysis reports.</div>
+          <div className="module-item"><strong>Finance</strong> — Provides expense recording, categorization, profit estimation, and financial summaries.</div>
+        </div>
+      </div>
+
+      <div className="manual-section">
+        <h3>8. Operating Procedures</h3>
+
+        <h4>Starting the System</h4>
+        <ol>
+          <li>Launch VIZIA POS.</li>
+          <li>Enter your secure PIN.</li>
+          <li>Select your assigned workspace.</li>
+          <li>Verify network status.</li>
+          <li>Begin daily operations.</li>
+        </ol>
+
+        <h4>Processing a Sale</h4>
+        <ol>
+          <li>Search or scan products.</li>
+          <li>Add items to the cart.</li>
+          <li>Apply discounts if authorized.</li>
+          <li>Select payment method.</li>
+          <li>Confirm payment.</li>
+          <li>Print or share receipt.</li>
+        </ol>
+
+        <h4>Processing Credit Sales</h4>
+        <ol>
+          <li>Select <strong>Credit Payment</strong>.</li>
+          <li>Capture customer information.</li>
+          <li>Confirm outstanding balance.</li>
+          <li>Save transaction.</li>
+        </ol>
+
+        <h4>Recording Credit Payments</h4>
+        <ol>
+          <li>Locate customer account.</li>
+          <li>Open outstanding balance.</li>
+          <li>Record payment amount.</li>
+          <li>Print receipt.</li>
+          <li>Save transaction.</li>
+        </ol>
+      </div>
+
+      <div className="manual-section">
+        <h3>9. Offline Operations</h3>
+        <p>VIZIA POS continues operating during internet outages.</p>
+        <p><strong>While offline:</strong> Sales continue normally, inventory updates locally, receipts are generated, and transactions are securely queued.</p>
+        <p><strong>Once connectivity is restored:</strong> Pending transactions synchronize automatically, cloud inventory updates, reports refresh, and synchronization status is confirmed.</p>
+        <p>This ensures uninterrupted business operations.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>10. Security</h3>
+        <p>Security measures include:</p>
+        <ul>
+          <li>Encrypted communication</li>
+          <li>PIN authentication</li>
+          <li>Role-based permissions</li>
+          <li>Audit logs</li>
+          <li>Transaction validation</li>
+          <li>Secure cloud synchronization</li>
+          <li>Data encryption</li>
+        </ul>
+        <p>Administrative functions require elevated privileges.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>11. Reporting &amp; Analytics</h3>
+        <p>Management reports include Revenue Analysis, Sales Trends, Customer Credit Reports, Expense Reports, Product Performance, Cashier Productivity, Inventory Reports, and Profit Estimates. Reports may be exported for auditing, accounting, or strategic planning.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>12. Administration</h3>
+        <p>System administrators are responsible for managing users, resetting PINs, creating products, managing categories, reviewing reports, monitoring inventory, recording expenses, and maintaining system integrity.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>13. Backup &amp; Recovery</h3>
+        <p>Business data is protected through cloud synchronization. Recommended practices include:</p>
+        <ul>
+          <li>Daily database backups</li>
+          <li>Weekly recovery testing</li>
+          <li>Secure backup storage</li>
+          <li>Periodic integrity verification</li>
+        </ul>
+        <p>In the event of device replacement or failure, synchronized data can be restored after authentication.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>14. Maintenance</h3>
+        <p>Routine maintenance includes software updates, database optimization, product catalogue review, user account audits, log monitoring, and security patch installation. Regular maintenance ensures optimal system performance and reliability.</p>
+      </div>
+
+      <div className="manual-section">
+        <h3>15. Best Practices</h3>
+        <ul>
+          <li>Keep product information current.</li>
+          <li>Perform regular stock counts.</li>
+          <li>Monitor low-stock alerts.</li>
+          <li>Record expenses promptly.</li>
+          <li>Review daily sales reports.</li>
+          <li>Use unique PINs for all staff.</li>
+          <li>Synchronize data whenever an internet connection is available.</li>
+          <li>Restrict administrative access to authorized personnel.</li>
+        </ul>
+      </div>
+
+      <div className="manual-section">
+        <h3>16. Troubleshooting</h3>
+        <table className="manual-table">
+          <thead>
+            <tr>
+              <th>Issue</th>
+              <th>Cause</th>
+              <th>Resolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Login Failed</td>
+              <td>Incorrect PIN</td>
+              <td>Verify credentials or contact an administrator.</td>
+            </tr>
+            <tr>
+              <td>Products Missing</td>
+              <td>Synchronization pending</td>
+              <td>Refresh the catalogue or reconnect to the internet.</td>
+            </tr>
+            <tr>
+              <td>Receipt Not Printing</td>
+              <td>Printer unavailable</td>
+              <td>Check printer connection or retry printing.</td>
+            </tr>
+            <tr>
+              <td>Pending Sync</td>
+              <td>No internet connection</td>
+              <td>Restore connectivity; synchronization resumes automatically.</td>
+            </tr>
+            <tr>
+              <td>Slow Performance</td>
+              <td>High transaction volume</td>
+              <td>Restart the application or perform scheduled maintenance.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="manual-section">
+        <h3>17. Technical Specifications</h3>
+        <table className="manual-table">
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Specification</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Platform</td><td>Web &amp; Android</td></tr>
+            <tr><td>Architecture</td><td>Offline-First</td></tr>
+            <tr><td>Database</td><td>PostgreSQL with Local Cache</td></tr>
+            <tr><td>Authentication</td><td>Secure PIN-Based Access</td></tr>
+            <tr><td>Reporting</td><td>Real-Time Analytics</td></tr>
+            <tr><td>Receipt Output</td><td>Thermal Printer &amp; PDF</td></tr>
+            <tr><td>Deployment</td><td>Cloud &amp; On-Premise Ready</td></tr>
+            <tr><td>Synchronization</td><td>Automatic Background Sync</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div className="manual-section">
+        <h3>18. Support Services</h3>
+        <p>VIZIA Technologies provides comprehensive post-deployment support, including:</p>
+        <ul>
+          <li>System installation and configuration</li>
+          <li>User onboarding and training</li>
+          <li>Data migration assistance</li>
+          <li>Preventive maintenance</li>
+          <li>Remote technical support</li>
+          <li>Software updates and enhancements</li>
+          <li>Business continuity planning</li>
+          <li>Feature customization and integrations</li>
+        </ul>
+      </div>
+
+      <div className="manual-footer">
+        <p><strong>VIZIA Technologies</strong></p>
+        <p className="manual-tagline">Innovate. Automate. Elevate.</p>
+      </div>
+    </div>
+  );
+}
+
 /* ─── About Tab ──────────────────────────────────────────────────── */
 
 function AboutTab() {
   return (
     <div className="tab-about">
       <div className="about-header">
-        <h2>VIZIA POS</h2>
+        <h2>VIZIA Technologies</h2>
         <span className="about-version">v1.0.0</span>
       </div>
-      <p className="about-tagline">
-        A full-featured, offline-capable Point of Sale system for agricultural retail shops in Kenya.
-        Runs as a web app and as a native Android APK — both from the same codebase.
+
+      <p className="about-tagline-bold">Innovating Today. Empowering Tomorrow.</p>
+
+      <p className="about-body">
+        VIZIA Technologies is a forward-thinking technology company dedicated to delivering innovative digital
+        solutions that enable organizations, institutions, and individuals to thrive in an increasingly connected
+        world. We combine technical excellence, strategic thinking, and a customer-centric approach to design
+        solutions that solve real-world challenges while driving sustainable growth.
+      </p>
+
+      <p className="about-body">
+        Founded with the vision of transforming ideas into impactful digital experiences, VIZIA Technologies
+        specializes in software engineering, cloud-based solutions, enterprise systems, digital transformation,
+        and emerging technologies. Our multidisciplinary team leverages modern development practices and
+        cutting-edge technologies to build secure, scalable, and intelligent solutions tailored to our clients'
+        unique needs.
+      </p>
+
+      <p className="about-body">
+        Our expertise spans multiple industries, including education, retail, finance, logistics, healthcare,
+        government, and small and medium-sized enterprises. At VIZIA Technologies, innovation is driven by
+        collaboration — we work closely with our clients as strategic partners, ensuring every solution aligns
+        with their objectives, operational requirements, and long-term vision.
       </p>
 
       <div className="about-section">
-        <h3>Key Features</h3>
+        <h3>Our Mission</h3>
+        <p className="about-body">
+          To empower organizations through innovative, reliable, and intelligent technology solutions that
+          enhance productivity, accelerate digital transformation, and create sustainable value.
+        </p>
+      </div>
+
+      <div className="about-section">
+        <h3>Our Vision</h3>
+        <p className="about-body">
+          To become a globally recognized technology company delivering transformative digital solutions that
+          redefine how businesses and communities interact with technology.
+        </p>
+      </div>
+
+      <div className="about-section">
+        <h3>Our Core Values</h3>
         <ul>
-          <li>Point of Sale with barcode scanning, discounts, and multiple payment methods (Cash, Card, M-Pesa, Credit)</li>
-          <li>Inventory management with low-stock alerts and photo capture</li>
-          <li>Credit sales tracking with partial payment recording</li>
-          <li>Sales reports, finance/expense tracking, and PDF export</li>
-          <li>Stock requisition with PDF export for suppliers</li>
-          <li>Offline-first: sales queue in local storage and sync automatically when online</li>
+          <li><strong>Innovation</strong> — Continuously exploring new technologies and creative approaches.</li>
+          <li><strong>Integrity</strong> — Building trust through honesty, transparency, and accountability.</li>
+          <li><strong>Excellence</strong> — Delivering exceptional quality in every solution we provide.</li>
+          <li><strong>Customer Success</strong> — Placing our clients' goals at the center of everything we do.</li>
+          <li><strong>Collaboration</strong> — Fostering strong partnerships that drive shared success.</li>
+          <li><strong>Continuous Learning</strong> — Embracing growth, research, and technological advancement.</li>
         </ul>
       </div>
 
       <div className="about-section">
-        <h3>Technology</h3>
-        <ul>
-          <li>React + TypeScript · Supabase (PostgreSQL) · Capacitor (Android)</li>
-          <li>Works fully offline with IndexedDB</li>
-        </ul>
+        <h3>Our Promise</h3>
+        <p className="about-body">
+          At VIZIA Technologies, we do more than develop technology — we build intelligent solutions that
+          empower organizations, inspire innovation, and create lasting digital transformation.
+        </p>
       </div>
 
       <div className="about-section about-meta">
-        <p><strong>Developed by:</strong> HTechno Solutions</p>
+        <p><strong>Developed by:</strong> VIZIA Technologies</p>
         <p><strong>Contact:</strong> htechnob@gmail.com · 0724-121-679</p>
-        <p><strong>Licensed for:</strong> Mkulima Agrovet Shop</p>
       </div>
     </div>
   );
