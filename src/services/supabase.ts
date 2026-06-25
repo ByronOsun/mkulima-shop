@@ -8,6 +8,7 @@ import type {
   Sale,
   SaleItem,
   StockMovement,
+  Tenant,
 } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -15,6 +16,25 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+
+// Set by auth service after login
+let _tenantId: string | null = null;
+let _isSuperAdmin = false;
+export const setCurrentTenant = (id: string | null, role?: string): void => {
+  _tenantId = id;
+  _isSuperAdmin = role === 'super_admin';
+};
+export const getCurrentTenant = (): string | null => _tenantId;
+
+// Apply tenant filter to a query builder.
+// super_admin → no filter (sees all)
+// admin/cashier with tenant → filter to their tenant
+// admin/cashier without tenant (legacy) → filter to NULL tenant only (safety: no cross-tenant bleed)
+function applyTenantFilter<T extends { eq: any; is: any }>(query: T): T {
+  if (_isSuperAdmin) return query;
+  if (_tenantId) return query.eq('tenant_id', _tenantId);
+  return query.is('tenant_id', null);
+}
 
 type DemoSaleInput = Pick<Sale, 'sale_date' | 'total_amount' | 'payment_method' | 'status'> &
   Partial<Pick<Sale, 'customer_name' | 'customer_contact' | 'amount_paid' | 'payment_channel' | 'cashier_name' | 'cashier_role'>>;
@@ -273,7 +293,7 @@ export const supabaseService = {
   async getProducts(): Promise<Product[]> {
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('products').select('*').order('name');
+        const { data, error } = await applyTenantFilter(supabase.from('products').select('*').order('name'));
         if (!error && data) {
           return data as Product[];
         }
@@ -309,11 +329,9 @@ export const supabaseService = {
   async getProductsByCategory(category: string): Promise<Product[]> {
     if (supabase) {
       try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('category', category)
-          .order('name');
+        const { data, error } = await applyTenantFilter(
+          supabase.from('products').select('*').eq('category', category).order('name')
+        );
         if (!error && data) {
           return data as Product[];
         }
@@ -351,9 +369,9 @@ export const supabaseService = {
     if (supabase) {
       try {
         const normalizedSale = stripUndefined({
-          // ensure amount_paid is always present for DB NOT NULL constraint
           ...saleData,
           amount_paid: saleData.amount_paid ?? 0,
+          ...((_tenantId) ? { tenant_id: _tenantId } : {}),
         });
 
         let { data, error } = await supabase.from('sales').insert([normalizedSale]).select().single();
@@ -467,12 +485,14 @@ export const supabaseService = {
   async getSalesForDate(date: string): Promise<Sale[]> {
     if (supabase) {
       try {
-        const { data, error } = await supabase
-          .from('sales')
-          .select('*')
-          .gte('sale_date', `${date}T00:00:00`)
-          .lt('sale_date', `${date}T23:59:59`)
-          .order('created_at', { ascending: false });
+        const { data, error } = await applyTenantFilter(
+          supabase
+            .from('sales')
+            .select('*')
+            .gte('sale_date', `${date}T00:00:00`)
+            .lt('sale_date', `${date}T23:59:59`)
+            .order('created_at', { ascending: false })
+        );
         if (!error && data) {
           const sales = data as Sale[];
           const saleIds = sales.map(sale => sale.id);
@@ -512,12 +532,14 @@ export const supabaseService = {
   async getSalesBetweenDates(startDate: string, endDate: string): Promise<Sale[]> {
     if (supabase) {
       try {
-        const { data, error } = await supabase
-          .from('sales')
-          .select('*')
-          .gte('sale_date', `${startDate}T00:00:00`)
-          .lte('sale_date', `${endDate}T23:59:59`)
-          .order('sale_date', { ascending: false });
+        const { data, error } = await applyTenantFilter(
+          supabase
+            .from('sales')
+            .select('*')
+            .gte('sale_date', `${startDate}T00:00:00`)
+            .lte('sale_date', `${endDate}T23:59:59`)
+            .order('sale_date', { ascending: false })
+        );
         if (!error && data) {
           const sales = data as Sale[];
           const saleIds = sales.map(sale => sale.id);
@@ -581,7 +603,7 @@ export const supabaseService = {
   async getCategories(): Promise<Category[]> {
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('categories').select('*').order('name');
+        const { data, error } = await applyTenantFilter(supabase.from('categories').select('*').order('name'));
         if (!error && data) {
           return data as Category[];
         }
@@ -599,12 +621,14 @@ export const supabaseService = {
       throw new Error(DEMO_DISABLED_MESSAGE);
     }
 
-    const { data, error } = await supabase
-      .from('finance_expenses')
-      .select('*')
-      .gte('expense_date', startDate)
-      .lte('expense_date', endDate)
-      .order('expense_date', { ascending: false });
+    const { data, error } = await applyTenantFilter(
+      supabase
+        .from('finance_expenses')
+        .select('*')
+        .gte('expense_date', startDate)
+        .lte('expense_date', endDate)
+        .order('expense_date', { ascending: false })
+    );
 
     if (error) {
       throw new Error(error.message);
@@ -618,9 +642,10 @@ export const supabaseService = {
       throw new Error(DEMO_DISABLED_MESSAGE);
     }
 
+    const payload = _tenantId ? { ...expense, tenant_id: _tenantId } : expense;
     const { data, error } = await supabase
       .from('finance_expenses')
-      .insert([expense])
+      .insert([payload])
       .select()
       .single();
 
@@ -654,9 +679,10 @@ export const supabaseService = {
 
     if (supabase) {
       try {
+        const payload = _tenantId ? { ...normalizedProduct, tenant_id: _tenantId } : normalizedProduct;
         const { data, error } = await supabase
           .from('products')
-          .insert([normalizedProduct])
+          .insert([payload])
           .select()
           .single();
         if (!error && data) {
@@ -1024,5 +1050,104 @@ export const supabaseService = {
 
     state.sales.splice(index, 1);
     saveDemoState();
+  },
+
+  // ─── Tenant management (super_admin only) ───────────────────────────────────
+
+  async getTenants(): Promise<Tenant[]> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('tenants')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data || []) as Tenant[];
+  },
+
+  async createTenant(tenantData: Omit<Tenant, 'id' | 'created_at' | 'updated_at'>): Promise<Tenant> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('tenants')
+      .insert([{ ...tenantData, updated_at: new Date().toISOString() }])
+      .select()
+      .single();
+    if (error || !data) throw new Error(error?.message || 'Failed to create tenant');
+    return data as Tenant;
+  },
+
+  async updateTenant(tenantId: string, updates: Partial<Omit<Tenant, 'id' | 'created_at'>>): Promise<Tenant> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('tenants')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', tenantId)
+      .select()
+      .single();
+    if (error || !data) throw new Error(error?.message || 'Failed to update tenant');
+    return data as Tenant;
+  },
+
+  async deleteTenant(tenantId: string): Promise<void> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { error } = await supabase.from('tenants').delete().eq('id', tenantId);
+    if (error) throw new Error(error.message);
+  },
+
+  async getTenantStaffUsers(tenantId: string): Promise<any[]> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('staff_users')
+      .select('id, username, display_name, role, is_active, tenant_id, created_at')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async getAllAdmins(): Promise<any[]> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('staff_users')
+      .select('id, username, display_name, role, is_active, tenant_id, created_at')
+      .eq('role', 'admin')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async createStaffUser(userData: {
+    username: string;
+    display_name: string;
+    role: string;
+    pin_hash: string;
+    is_active: boolean;
+    tenant_id?: string;
+  }): Promise<any> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('staff_users')
+      .insert([userData])
+      .select()
+      .single();
+    if (error || !data) throw new Error(error?.message || 'Failed to create user');
+    return data;
+  },
+
+  async updateStaffUser(userId: string, updates: { display_name?: string; role?: string; pin_hash?: string; is_active?: boolean }): Promise<any> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('staff_users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error || !data) throw new Error(error?.message || 'Failed to update user');
+    return data;
+  },
+
+  async deleteStaffUser(userId: string): Promise<void> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { error } = await supabase.from('staff_users').delete().eq('id', userId);
+    if (error) throw new Error(error.message);
   },
 };

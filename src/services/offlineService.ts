@@ -109,6 +109,7 @@ export async function completeSaleOffline(params: CompleteSaleParams): Promise<R
       paymentMethod === 'credit' && amountPaid > 0 ? initialPaymentMethod : undefined,
     cashier_name: user?.fullName || user?.username || 'Unknown',
     cashier_role: user?.role ?? 'cashier',
+    tenant_id: user?.tenant_id || undefined,
     _synced: 0,
   });
 
@@ -141,6 +142,7 @@ export async function completeSaleOffline(params: CompleteSaleParams): Promise<R
     discountAmount: discountAmount > 0 ? discountAmount : undefined,
     cashierRole: user?.role ?? 'cashier',
     cashierName: user?.fullName || user?.username || 'Unknown',
+    tenantConfig: user?.tenantConfig,
     items: items.map(item => ({
       productId: item.productId,
       name:      item.product.name,

@@ -14,6 +14,7 @@ export interface OfflineSale {
   payment_channel?: string;
   cashier_name?: string;
   cashier_role?: string;
+  tenant_id?: string;
   _synced: 0 | 1;
 }
 

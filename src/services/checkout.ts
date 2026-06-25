@@ -67,6 +67,7 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
     discountAmount: discountAmount > 0 ? discountAmount : undefined,
     cashierRole: user?.role ?? 'cashier',
     cashierName: user?.fullName || user?.username || 'Unknown User',
+    tenantConfig: user?.tenantConfig,
     items: items.map(item => ({
       productId: item.productId,
       name: item.product.name,

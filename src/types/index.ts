@@ -110,9 +110,28 @@ export interface ReceiptData {
   cashierRole: UserRole;
   cashierName: string;
   items: ReceiptItem[];
+  tenantConfig?: TenantConfig;
 }
 
-export type UserRole = 'cashier' | 'admin';
+export type UserRole = 'cashier' | 'admin' | 'super_admin';
+
+export interface Tenant {
+  id: string;
+  shop_name: string;
+  address?: string;
+  phone?: string;
+  header_text?: string;
+  footer_text?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantConfig {
+  shopName: string;
+  address?: string;
+  phone?: string;
+}
 
 export interface User {
   id: string;
@@ -123,6 +142,8 @@ export interface User {
   lastName?: string;
   fullName?: string;
   is_active?: boolean;
+  tenant_id?: string;
+  tenantConfig?: TenantConfig;
   created_at?: string;
 }
 

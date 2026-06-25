@@ -14,6 +14,7 @@ import HistoryPage from './pages/HistoryPage';
 import CreditSalesPage from './pages/CreditSalesPage';
 import BarcodeLabelsPage from './pages/BarcodeLabelsPage';
 import SettingsPage from './pages/SettingsPage';
+import SuperAdminPage from './pages/SuperAdminPage';
 import { ReceiptData } from './types';
 
 type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'stock-requisition' | 'finance' | 'receipt' | 'history' | 'credit-sales' | 'barcode-labels' | 'settings';
@@ -78,6 +79,11 @@ function AppContent() {
 
   const isCashier = user?.role === 'cashier';
   const isAdmin = user?.role === 'admin';
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  if (isSuperAdmin) {
+    return <SuperAdminPage />;
+  }
 
   const renderPage = () => {
     switch (currentPage) {
@@ -134,7 +140,7 @@ function AppContent() {
         <div className="header-right">
           <div className="user-info">
             <span className="user-badge">
-              {isCashier ? '💳 ' : '👤 '}
+              {isCashier ? '💳 ' : isSuperAdmin ? '🛡 ' : '👤 '}
               {user?.fullName || user?.username}
             </span>
             <button className="btn-logout" onClick={logout} title="Logout">

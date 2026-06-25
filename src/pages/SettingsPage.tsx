@@ -34,7 +34,7 @@ async function hashPin(pin: string): Promise<string> {
 const CATEGORY_ORDER_KEY = 'vizia-category-order';
 
 export default function SettingsPage({ onExit }: Props) {
-  useAuth();
+  const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('users');
 
   const tabs: { key: Tab; icon: string; label: string }[] = [
@@ -63,8 +63,8 @@ export default function SettingsPage({ onExit }: Props) {
       </aside>
 
       <div className="settings-content">
-        {activeTab === 'users' && <UsersTab />}
-        {activeTab === 'categories' && <CategoriesTab />}
+        {activeTab === 'users' && <UsersTab tenantId={currentUser?.tenant_id} />}
+        {activeTab === 'categories' && <CategoriesTab tenantId={currentUser?.tenant_id} />}
         {activeTab === 'contact' && <ContactTab />}
         {activeTab === 'about' && <AboutTab />}
       </div>
@@ -80,7 +80,7 @@ type UserModal =
   | { type: 'reset-pin'; user: StaffUser }
   | { type: 'delete'; user: StaffUser };
 
-function UsersTab() {
+function UsersTab({ tenantId }: { tenantId?: string }) {
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,10 +94,13 @@ function UsersTab() {
     }
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
+      let query = supabase
         .from('staff_users')
         .select('id, username, display_name, role, is_active, created_at')
+        .eq('role', 'cashier')
         .order('created_at', { ascending: false });
+      if (tenantId) query = query.eq('tenant_id', tenantId);
+      const { data, error: err } = await query;
       if (err) throw new Error(err.message);
       setUsers((data as StaffUser[]) || []);
       setError(null);
@@ -108,7 +111,7 @@ function UsersTab() {
     }
   };
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => { loadUsers(); }, [tenantId]);
 
   const closeModal = () => setModal(null);
   const afterSave = () => { closeModal(); loadUsers(); };
@@ -162,7 +165,7 @@ function UsersTab() {
       </table>
 
       {modal?.type === 'create' && (
-        <CreateUserModal onClose={closeModal} onSaved={afterSave} />
+        <CreateUserModal tenantId={tenantId} onClose={closeModal} onSaved={afterSave} />
       )}
       {modal?.type === 'edit' && (
         <EditUserModal user={modal.user} onClose={closeModal} onSaved={afterSave} />
@@ -180,16 +183,14 @@ function UsersTab() {
 interface CreateUserForm {
   display_name: string;
   username: string;
-  role: 'admin' | 'cashier';
   pin: string;
   confirm_pin: string;
 }
 
-function CreateUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function CreateUserModal({ tenantId, onClose, onSaved }: { tenantId?: string; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState<CreateUserForm>({
     display_name: '',
     username: '',
-    role: 'cashier',
     pin: '',
     confirm_pin: '',
   });
@@ -197,7 +198,7 @@ function CreateUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const set = (field: keyof CreateUserForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (field: keyof CreateUserForm) => (e: ChangeEvent<HTMLInputElement>) =>
     setForm(prev => ({ ...prev, [field]: e.target.value }));
 
   const handleSubmit = async (e: FormEvent) => {
@@ -216,9 +217,10 @@ function CreateUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
       const { error: err } = await supabase.from('staff_users').insert([{
         username: form.username.trim(),
         display_name: form.display_name.trim(),
-        role: form.role,
+        role: 'cashier',
         pin_hash,
         is_active: true,
+        tenant_id: tenantId || null,
       }]);
       if (err) throw new Error(err.message);
       setSuccess(true);
@@ -233,7 +235,7 @@ function CreateUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
   return (
     <div className="modal-overlay">
       <div className="modal-box">
-        <h3>Create User</h3>
+        <h3>Create Cashier</h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Display Name</label>
@@ -244,13 +246,6 @@ function CreateUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             <input type="text" value={form.username} onChange={set('username')} required />
           </div>
           <div className="form-group">
-            <label>Role</label>
-            <select value={form.role} onChange={set('role')}>
-              <option value="cashier">Cashier</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div className="form-group">
             <label>PIN (4–6 digits)</label>
             <input type="password" value={form.pin} onChange={set('pin')} maxLength={6} />
           </div>
@@ -259,7 +254,7 @@ function CreateUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
             <input type="password" value={form.confirm_pin} onChange={set('confirm_pin')} maxLength={6} />
           </div>
           {error && <div className="form-error">{error}</div>}
-          {success && <div className="form-success">User created!</div>}
+          {success && <div className="form-success">Cashier created!</div>}
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Create'}</button>
@@ -272,7 +267,7 @@ function CreateUserModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
 
 function EditUserModal({ user, onClose, onSaved }: { user: StaffUser; onClose: () => void; onSaved: () => void }) {
   const [displayName, setDisplayName] = useState(user.display_name);
-  const [role, setRole] = useState<'admin' | 'cashier'>(user.role);
+  const [isActive, setIsActive] = useState(user.is_active);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -284,7 +279,7 @@ function EditUserModal({ user, onClose, onSaved }: { user: StaffUser; onClose: (
       setSaving(true);
       const { error: err } = await supabase
         .from('staff_users')
-        .update({ display_name: displayName.trim(), role })
+        .update({ display_name: displayName.trim(), is_active: isActive })
         .eq('id', user.id);
       if (err) throw new Error(err.message);
       onSaved();
@@ -298,17 +293,17 @@ function EditUserModal({ user, onClose, onSaved }: { user: StaffUser; onClose: (
   return (
     <div className="modal-overlay">
       <div className="modal-box">
-        <h3>Edit User — {user.username}</h3>
+        <h3>Edit Cashier — {user.username}</h3>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Display Name</label>
             <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} required />
           </div>
           <div className="form-group">
-            <label>Role</label>
-            <select value={role} onChange={e => setRole(e.target.value as 'admin' | 'cashier')}>
-              <option value="cashier">Cashier</option>
-              <option value="admin">Admin</option>
+            <label>Status</label>
+            <select value={isActive ? 'active' : 'inactive'} onChange={e => setIsActive(e.target.value === 'active')}>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
             </select>
           </div>
           {error && <div className="form-error">{error}</div>}
@@ -413,7 +408,7 @@ function DeleteUserModal({ user, onClose, onSaved }: { user: StaffUser; onClose:
 
 /* ─── Categories Tab ─────────────────────────────────────────────── */
 
-function CategoriesTab() {
+function CategoriesTab({ tenantId }: { tenantId?: string }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -518,7 +513,16 @@ function CategoriesTab() {
 
   const handleDelete = async (id: string) => {
     if (!supabase) { setError('Supabase not configured'); return; }
+    const cat = categories.find(c => c.id === id);
     try {
+      // Delete all products in this category first
+      if (cat) {
+        let productDel = supabase.from('products').delete().eq('category', cat.name);
+        if (tenantId) productDel = productDel.eq('tenant_id', tenantId);
+        const { error: prodErr } = await productDel;
+        if (prodErr) throw new Error(prodErr.message);
+      }
+      // Then delete the category itself
       const { error: err } = await supabase.from('categories').delete().eq('id', id);
       if (err) throw new Error(err.message);
       setCategories(prev => prev.filter(c => c.id !== id));
@@ -539,7 +543,7 @@ function CategoriesTab() {
       const now = new Date().toISOString();
       const { error: err } = await supabase
         .from('categories')
-        .insert([{ id, name: newName.trim(), description: newDesc.trim(), created_at: now }]);
+        .insert([{ id, name: newName.trim(), description: newDesc.trim(), created_at: now, ...(tenantId ? { tenant_id: tenantId } : {}) }]);
       if (err) throw new Error(err.message);
       const newCat: Category = { id, name: newName.trim(), description: newDesc.trim(), created_at: now };
       setCategories(prev => [...prev, newCat]);
@@ -599,8 +603,8 @@ function CategoriesTab() {
             )}
             {deletingId === cat.id && (
               <div className="inline-confirm">
-                <span>Delete <strong>{cat.name}</strong>?</span>
-                <button className="btn-danger btn-sm" onClick={() => handleDelete(cat.id)}>Yes, delete</button>
+                <span>Delete <strong>{cat.name}</strong> and all its products?</span>
+                <button className="btn-danger btn-sm" onClick={() => handleDelete(cat.id)}>Yes, delete all</button>
                 <button className="btn-secondary btn-sm" onClick={() => setDeletingId(null)}>Cancel</button>
               </div>
             )}

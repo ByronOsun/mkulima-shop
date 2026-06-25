@@ -57,10 +57,14 @@ export default function ReceiptPage({ receipt, onBackToPos }: ReceiptPageProps) 
     return left + ' '.repeat(gap) + right;
   };
 
+  const shopName = receipt.tenantConfig?.shopName || 'WAKULIMA SHOP KIBOSWA';
+  const shopAddress = receipt.tenantConfig?.address || 'Kisumu-Kakamega Stage';
+  const shopPhone = receipt.tenantConfig?.phone || 'Tel: 0795 383 779';
+
   const receiptText = `${padCenter('='.repeat(WIDTH))}
-${padCenter('WAKULIMA SHOP KIBOSWA')}
-${padCenter('Kisumu-Kakamega Stage')}
-${padCenter('Tel: 0795 383 779')}
+${padCenter(shopName)}
+${padCenter(shopAddress)}
+${padCenter(shopPhone)}
 ${padCenter('-'.repeat(WIDTH))}
 Receipt #${receipt.receiptNumber.toString().padStart(6, '0')}
 ${formatDate(receipt.saleDate)}

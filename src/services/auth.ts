@@ -1,5 +1,5 @@
-import { User } from '../types';
-import { supabase } from './supabase';
+import { User, TenantConfig } from '../types';
+import { supabase, setCurrentTenant } from './supabase';
 import { compare } from 'bcryptjs';
 
 const AUTH_STORAGE_KEY = 'mkulima-auth-user';
@@ -46,12 +46,27 @@ const extractLoginName = (value: string) => {
 const deriveRoleFromUsername = (value: string) => {
   const normalized = normalizeUsername(value);
   const [, maybeRole] = normalized.split('.');
-  if (maybeRole === 'cashier' || maybeRole === 'admin') {
-    return maybeRole;
+  if (maybeRole === 'cashier' || maybeRole === 'admin' || maybeRole === 'super_admin') {
+    return maybeRole as User['role'];
   }
 
   return null;
 };
+
+async function fetchTenantConfig(tenantId: string): Promise<TenantConfig | undefined> {
+  if (!supabase) return undefined;
+  try {
+    const { data } = await supabase.from('tenants').select('shop_name, address, phone').eq('id', tenantId).single();
+    if (!data) return undefined;
+    return {
+      shopName: data.shop_name,
+      address: data.address || undefined,
+      phone: data.phone || undefined,
+    };
+  } catch {
+    return undefined;
+  }
+}
 
 const hashPin = async (pin: string) => {
   if (!globalThis.crypto?.subtle) {
@@ -82,7 +97,7 @@ export const authService = {
     const lookupUsername = extractLoginName(username);
     const { data, error } = await supabase
       .from('staff_users')
-      .select('id, username, pin_hash, role, display_name, created_at, is_active')
+      .select('id, username, pin_hash, role, display_name, created_at, is_active, tenant_id')
       .eq('username', lookupUsername)
       .eq('is_active', true)
       .maybeSingle();
@@ -98,6 +113,22 @@ export const authService = {
     const inferredRole = deriveRoleFromUsername(username);
     const effectiveRole = (inferredRole ?? data.role) as User['role'];
 
+    const tenantId: string | null = data.tenant_id || null;
+
+    // For non-super_admin users with a tenant, verify the tenant is active
+    if (effectiveRole !== 'super_admin' && tenantId) {
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('is_active')
+        .eq('id', tenantId)
+        .single();
+      if (tenant && !tenant.is_active) {
+        throw new Error('This shop account has been suspended. Please contact support.');
+      }
+    }
+
+    const tenantConfig = tenantId ? await fetchTenantConfig(tenantId) : undefined;
+
     const user: User = {
       id: data.id,
       username: data.username,
@@ -105,8 +136,11 @@ export const authService = {
       fullName: data.display_name,
       created_at: data.created_at,
       is_active: data.is_active,
+      tenant_id: tenantId || undefined,
+      tenantConfig,
     };
 
+    setCurrentTenant(tenantId, effectiveRole);
     saveCurrentUser(user);
     return user;
   },
@@ -118,7 +152,7 @@ export const authService = {
 
     const { data, error } = await supabase
       .from('staff_users')
-      .select('id, username, pin_hash, role, display_name, created_at, is_active')
+      .select('id, username, pin_hash, role, display_name, created_at, is_active, tenant_id')
       .eq('is_active', true);
 
     if (error) {
@@ -130,6 +164,21 @@ export const authService = {
         const inferredRole = deriveRoleFromUsername(candidate.username);
         const effectiveRole = (inferredRole ?? candidate.role) as User['role'];
 
+        const tenantId: string | null = candidate.tenant_id || null;
+
+        if (effectiveRole !== 'super_admin' && tenantId) {
+          const { data: tenant } = await supabase
+            .from('tenants')
+            .select('is_active')
+            .eq('id', tenantId)
+            .single();
+          if (tenant && !tenant.is_active) {
+            throw new Error('This shop account has been suspended. Please contact support.');
+          }
+        }
+
+        const tenantConfig = tenantId ? await fetchTenantConfig(tenantId) : undefined;
+
         const user: User = {
           id: candidate.id,
           username: candidate.username,
@@ -137,8 +186,11 @@ export const authService = {
           fullName: candidate.display_name,
           created_at: candidate.created_at,
           is_active: candidate.is_active,
+          tenant_id: tenantId || undefined,
+          tenantConfig,
         };
 
+        setCurrentTenant(tenantId, effectiveRole);
         saveCurrentUser(user);
         return user;
       }
@@ -156,6 +208,10 @@ export const authService = {
   },
 
   async validateSession(): Promise<User | null> {
-    return loadCurrentUser();
+    const user = loadCurrentUser();
+    if (user) {
+      setCurrentTenant(user.tenant_id ?? null, user.role);
+    }
+    return user;
   },
 };
