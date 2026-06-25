@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ReceiptData, Sale } from '../types';
 import { supabaseService } from '../services/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/SalesPage.css';
 
 interface SalesPageProps {
@@ -8,6 +9,7 @@ interface SalesPageProps {
 }
 
 export default function SalesPage({ onOpenReceipt }: SalesPageProps) {
+  const { user } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,7 @@ export default function SalesPage({ onOpenReceipt }: SalesPageProps) {
     totalAmount: sale.total_amount,
     cashierRole: 'cashier',
     cashierName: 'Archived Transaction',
+    tenantConfig: user?.tenantConfig,
     items: (sale.items || []).map(item => ({
       productId: item.productId,
       name: item.product?.name || 'Unknown Item',
