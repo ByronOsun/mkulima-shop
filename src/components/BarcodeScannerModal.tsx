@@ -1,0 +1,278 @@
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Product } from '../types';
+import '../styles/BarcodeScannerModal.css';
+
+// BarcodeDetector is a Chrome/WebView native API — not yet in TypeScript's lib
+declare global {
+  class BarcodeDetector {
+    constructor(options?: { formats: string[] });
+    detect(source: HTMLVideoElement): Promise<Array<{ rawValue: string }>>;
+    static getSupportedFormats(): Promise<string[]>;
+  }
+}
+
+interface Props {
+  products: Product[];
+  onAddToCart: (product: Product, quantity: number) => void;
+  onClose: () => void;
+}
+
+type ScanState = 'scanning' | 'found' | 'not-found' | 'unavailable';
+
+const fmt = (n: number) =>
+  new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(n);
+
+export default function BarcodeScannerModal({ products, onAddToCart, onClose }: Props) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animFrameRef = useRef<number>(0);
+  const detectorRef = useRef<BarcodeDetector | null>(null);
+  const scanActiveRef = useRef(true);
+  const frameCounter = useRef(0);
+
+  const [scanState, setScanState] = useState<ScanState>('scanning');
+  const [foundProduct, setFoundProduct] = useState<Product | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [scannedCode, setScannedCode] = useState('');
+  const [statusMsg, setStatusMsg] = useState('');
+
+  const stopStream = useCallback(() => {
+    cancelAnimationFrame(animFrameRef.current);
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  const handleClose = useCallback(() => {
+    scanActiveRef.current = false;
+    stopStream();
+    onClose();
+  }, [stopStream, onClose]);
+
+  const lookupByCode = useCallback((code: string): Product | undefined => {
+    const normalized = code.trim().toLowerCase();
+    return products.find(p =>
+      p.sku?.toLowerCase() === normalized ||
+      p.name.toLowerCase() === normalized
+    );
+  }, [products]);
+
+  const handleDetectedCode = useCallback((raw: string) => {
+    if (!scanActiveRef.current) return;
+    scanActiveRef.current = false;
+
+    const code = raw.trim();
+    setScannedCode(code);
+
+    const product = lookupByCode(code);
+    if (product) {
+      setFoundProduct(product);
+      setQuantity(1);
+      setScanState('found');
+    } else {
+      setScanState('not-found');
+    }
+  }, [lookupByCode]);
+
+  // Start camera + detection loop
+  useEffect(() => {
+    if (!('BarcodeDetector' in window)) {
+      setStatusMsg('Camera barcode scanning requires Chrome or a Chromium-based browser.');
+      setScanState('unavailable');
+      return;
+    }
+
+    let cancelled = false;
+
+    const startCamera = async () => {
+      try {
+        const formats = await BarcodeDetector.getSupportedFormats();
+        detectorRef.current = new BarcodeDetector({ formats });
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+
+        const tick = async () => {
+          if (cancelled || !detectorRef.current || !videoRef.current) return;
+
+          // Sample every ~10 frames (~167 ms at 60 fps) to keep CPU low
+          frameCounter.current++;
+          if (scanActiveRef.current && frameCounter.current % 10 === 0 &&
+              videoRef.current.readyState >= 2) {
+            try {
+              const hits = await detectorRef.current.detect(videoRef.current);
+              if (hits.length > 0 && scanActiveRef.current) {
+                handleDetectedCode(hits[0].rawValue);
+              }
+            } catch { /* ignore per-frame decode errors */ }
+          }
+          animFrameRef.current = requestAnimationFrame(tick);
+        };
+        animFrameRef.current = requestAnimationFrame(tick);
+      } catch (err) {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setStatusMsg(`Camera error: ${msg}`);
+          setScanState('unavailable');
+        }
+      }
+    };
+
+    startCamera();
+    return () => {
+      cancelled = true;
+      stopStream();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const resetToScan = () => {
+    setFoundProduct(null);
+    setScannedCode('');
+    scanActiveRef.current = true;
+    setScanState('scanning');
+  };
+
+  const handleAddToCart = () => {
+    if (!foundProduct) return;
+    onAddToCart(foundProduct, quantity);
+    resetToScan();
+  };
+
+  const handleManualSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const input = e.currentTarget.elements.namedItem('code') as HTMLInputElement;
+    const val = input.value.trim();
+    if (val) {
+      handleDetectedCode(val);
+      input.value = '';
+    }
+  };
+
+  return (
+    <div className="bsm-overlay" onMouseDown={e => e.target === e.currentTarget && handleClose()}>
+      <div className="bsm-modal">
+
+        <div className="bsm-header">
+          <span className="bsm-title">
+            <BarcodeIcon /> Scan Product
+          </span>
+          <button className="bsm-close" onClick={handleClose} aria-label="Close scanner">✕</button>
+        </div>
+
+        {/* Video viewfinder — always in DOM while modal is open so stream stays live */}
+        <div className={`bsm-viewfinder${scanState !== 'scanning' ? ' bsm-viewfinder--idle' : ''}`}>
+          <video ref={videoRef} className="bsm-video" playsInline muted />
+          {scanState === 'scanning' && (
+            <div className="bsm-reticle">
+              <div className="bsm-reticle-inner" />
+              <p className="bsm-hint">Aim at product barcode</p>
+            </div>
+          )}
+        </div>
+
+        {scanState === 'unavailable' && (
+          <div className="bsm-status bsm-status--warn">
+            <p>{statusMsg || 'Camera unavailable.'}</p>
+            <p className="bsm-status-sub">
+              Use a USB / Bluetooth barcode scanner — it works automatically on the POS screen.
+              Or enter a barcode manually below.
+            </p>
+          </div>
+        )}
+
+        {scanState === 'found' && foundProduct && (
+          <div className="bsm-result bsm-result--found">
+            <div className="bsm-product-name">{foundProduct.name}</div>
+            <div className="bsm-product-meta">
+              <span className="bsm-meta-tag">{foundProduct.category}</span>
+              <span className="bsm-meta-sku">SKU {foundProduct.sku}</span>
+            </div>
+            <div className="bsm-product-price">{fmt(foundProduct.unit_price)}</div>
+            <div className="bsm-product-stock">
+              {foundProduct.quantity_in_stock > 0
+                ? `${foundProduct.quantity_in_stock} in stock`
+                : <span className="bsm-out-of-stock">Out of stock</span>}
+            </div>
+            <div className="bsm-qty-row">
+              <button className="bsm-qty-btn" onClick={() => setQuantity(q => Math.max(1, q - 1))}>−</button>
+              <input
+                className="bsm-qty-input"
+                type="number"
+                min={1}
+                max={foundProduct.quantity_in_stock}
+                value={quantity}
+                onChange={e =>
+                  setQuantity(Math.max(1, Math.min(
+                    foundProduct.quantity_in_stock,
+                    parseInt(e.target.value) || 1
+                  )))
+                }
+              />
+              <button
+                className="bsm-qty-btn"
+                onClick={() => setQuantity(q => Math.min(foundProduct.quantity_in_stock, q + 1))}
+              >+</button>
+            </div>
+            <div className="bsm-actions">
+              <button className="bsm-btn-secondary" onClick={resetToScan}>Scan Again</button>
+              <button
+                className="bsm-btn-primary"
+                onClick={handleAddToCart}
+                disabled={foundProduct.quantity_in_stock === 0}
+              >
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        )}
+
+        {scanState === 'not-found' && (
+          <div className="bsm-result bsm-result--not-found">
+            <div className="bsm-not-found-icon">?</div>
+            <div className="bsm-not-found-title">No product found</div>
+            <div className="bsm-not-found-code">"{scannedCode}"</div>
+            <p className="bsm-not-found-hint">
+              Check that the product SKU matches this barcode, or add the product to inventory first.
+            </p>
+            <button className="bsm-btn-secondary" onClick={resetToScan}>Scan Again</button>
+          </div>
+        )}
+
+        {/* Manual / USB scanner fallback — always visible */}
+        <form className="bsm-manual" onSubmit={handleManualSubmit}>
+          <input
+            name="code"
+            className="bsm-manual-input"
+            placeholder="Barcode / SKU — type or scan here"
+            autoComplete="off"
+            autoFocus={scanState === 'unavailable'}
+          />
+          <button type="submit" className="bsm-manual-btn">Look up</button>
+        </form>
+
+      </div>
+    </div>
+  );
+}
+
+function BarcodeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 4 }}>
+      <rect x="1" y="4" width="2" height="16"/>
+      <rect x="5" y="4" width="1" height="16"/>
+      <rect x="8" y="4" width="2" height="16"/>
+      <rect x="12" y="4" width="1" height="16"/>
+      <rect x="15" y="4" width="2" height="16"/>
+      <rect x="19" y="4" width="1" height="16"/>
+      <rect x="22" y="4" width="1" height="16"/>
+    </svg>
+  );
+}

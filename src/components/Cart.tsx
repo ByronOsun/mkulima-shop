@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { CartItem, ReceiptData } from '../types';
+import { CartItem, Product, ReceiptData } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { completeSale, SalePaymentMethod } from '../services/checkout';
+import BarcodeScannerModal from './BarcodeScannerModal';
 import '../styles/Cart.css';
 
 interface CartProps {
@@ -10,6 +11,8 @@ interface CartProps {
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onCheckoutSuccess: (receipt: ReceiptData) => void;
   onCreditCheckout: () => void;
+  products?: Product[];
+  onAddToCart?: (product: Product, quantity: number) => void;
 }
 
 export default function Cart({
@@ -18,6 +21,8 @@ export default function Cart({
   onUpdateQuantity,
   onCheckoutSuccess,
   onCreditCheckout,
+  products,
+  onAddToCart,
 }: CartProps) {
   const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<Exclude<SalePaymentMethod, 'credit'>>('cash');
@@ -25,6 +30,7 @@ export default function Cart({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [discountInput, setDiscountInput] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
 
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
 
@@ -34,6 +40,8 @@ export default function Cart({
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(n);
+
+
 
   const handlePaymentMethodChange = (value: string) => {
     if (value === 'credit') {
@@ -73,7 +81,31 @@ export default function Cart({
 
   return (
     <div className="cart-container">
-      <h2>Shopping Cart</h2>
+      <div className="cart-heading-row">
+        <h2>Shopping Cart</h2>
+        {products && onAddToCart && (
+          <button
+            className="cart-scan-btn"
+            onClick={() => setShowScanner(true)}
+            title="Scan product barcode"
+            type="button"
+          >
+            <BarcodeIcon />
+            Scan
+          </button>
+        )}
+      </div>
+
+      {showScanner && products && onAddToCart && (
+        <BarcodeScannerModal
+          products={products}
+          onAddToCart={(product, qty) => {
+            onAddToCart(product, qty);
+            setShowScanner(false);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
 
       <div className="cart-items">
         {items.length === 0 ? (
@@ -195,5 +227,19 @@ export default function Cart({
         </>
       )}
     </div>
+  );
+}
+
+function BarcodeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="1" y="4" width="2" height="16"/>
+      <rect x="5" y="4" width="1" height="16"/>
+      <rect x="8" y="4" width="2" height="16"/>
+      <rect x="12" y="4" width="1" height="16"/>
+      <rect x="15" y="4" width="2" height="16"/>
+      <rect x="19" y="4" width="1" height="16"/>
+      <rect x="22" y="4" width="1" height="16"/>
+    </svg>
   );
 }

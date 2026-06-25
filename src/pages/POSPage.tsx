@@ -25,6 +25,46 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     loadCategories();
   }, []);
 
+  // Keyboard wedge: USB barcode scanners and Sunmi V2 Pro in keystroke mode
+  // emit characters very rapidly then send Enter. Buffer them here and resolve
+  // the product when Enter arrives, as long as chars came in under 50 ms apart.
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyTime = 0;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return;
+
+      const now = Date.now();
+
+      if (e.key === 'Enter') {
+        const code = buffer.trim();
+        buffer = '';
+        lastKeyTime = 0;
+        if (code.length >= 3) {
+          const match = products.find(p =>
+            p.sku?.toLowerCase() === code.toLowerCase() ||
+            p.name.toLowerCase() === code.toLowerCase()
+          );
+          if (match) addToCart(match, 1);
+        }
+        return;
+      }
+
+      if (e.key.length === 1) {
+        const gap = now - lastKeyTime;
+        // If gap is too large, the user is typing manually — reset
+        if (lastKeyTime > 0 && gap > 100) buffer = '';
+        buffer += e.key;
+        lastKeyTime = now;
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [products]); // re-bind when products list changes
+
   const loadProducts = async () => {
     try {
       setLoading(true);
@@ -178,6 +218,8 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
             onUpdateQuantity={updateCartItem}
             onCheckoutSuccess={handleCheckoutSuccess}
             onCreditCheckout={() => setShowCreditCheckout(true)}
+            products={products}
+            onAddToCart={addToCart}
           />
         </div>
       </div>
@@ -222,6 +264,8 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
             onUpdateQuantity={updateCartItem}
             onCheckoutSuccess={handleCheckoutSuccess}
             onCreditCheckout={() => setShowCreditCheckout(true)}
+            products={products}
+            onAddToCart={addToCart}
           />
         </div>
       </div>

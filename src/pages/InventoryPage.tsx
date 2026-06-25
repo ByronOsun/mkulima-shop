@@ -5,7 +5,11 @@ import AddProductForm from '../components/AddProductForm';
 import EditProductModal from '../components/EditProductModal';
 import '../styles/InventoryPage.css';
 
-export default function InventoryPage() {
+interface InventoryPageProps {
+  onShowBarcodes: () => void;
+}
+
+export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,13 +94,22 @@ export default function InventoryPage() {
     <div className="inventory-page">
       <div className="inventory-header">
         <h2>Inventory Management</h2>
-        <button
-          className="btn-add-product"
-          onClick={() => setShowAddForm(true)}
-          title="Add new product to inventory"
-        >
-          + Add Product
-        </button>
+        <div className="inventory-header-actions">
+          <button
+            className="btn-add-product"
+            onClick={() => setShowAddForm(true)}
+            title="Add new product to inventory"
+          >
+            + Add Product
+          </button>
+          <button
+            className="btn-barcode-labels"
+            onClick={onShowBarcodes}
+            title="Generate barcode labels for all products"
+          >
+            <BarcodeIcon /> Barcode Labels
+          </button>
+        </div>
         <div className="inventory-stats">
           <div className="stat-card">
             <span className="stat-label">Total Products</span>
@@ -241,5 +254,19 @@ export default function InventoryPage() {
         />
       )}
     </div>
+  );
+}
+
+function BarcodeIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: 4 }}>
+      <rect x="1" y="4" width="2" height="16"/>
+      <rect x="5" y="4" width="1" height="16"/>
+      <rect x="8" y="4" width="2" height="16"/>
+      <rect x="12" y="4" width="1" height="16"/>
+      <rect x="15" y="4" width="2" height="16"/>
+      <rect x="19" y="4" width="1" height="16"/>
+      <rect x="22" y="4" width="1" height="16"/>
+    </svg>
   );
 }

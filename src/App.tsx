@@ -12,9 +12,10 @@ import FinancePage from './pages/FinancePage';
 import ReceiptPage from './pages/ReceiptPage';
 import HistoryPage from './pages/HistoryPage';
 import CreditSalesPage from './pages/CreditSalesPage';
+import BarcodeLabelsPage from './pages/BarcodeLabelsPage';
 import { ReceiptData } from './types';
 
-type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'stock-requisition' | 'finance' | 'receipt' | 'history' | 'credit-sales';
+type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'stock-requisition' | 'finance' | 'receipt' | 'history' | 'credit-sales' | 'barcode-labels';
 
 function LoadingScreen() {
   const [progress, setProgress] = useState(0);
@@ -82,7 +83,9 @@ function AppContent() {
       case 'pos':
         return <POSPage onCheckoutSuccess={handleReceiptReady} />;
       case 'inventory':
-        return isAdmin ? <InventoryPage /> : null;
+        return isAdmin ? <InventoryPage onShowBarcodes={() => setCurrentPage('barcode-labels')} /> : null;
+      case 'barcode-labels':
+        return isAdmin ? <BarcodeLabelsPage onBack={() => setCurrentPage('inventory')} /> : null;
       case 'sales':
         return isAdmin ? <SalesPage onOpenReceipt={handleReceiptReady} /> : null;
       case 'reports':

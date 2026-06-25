@@ -1,0 +1,310 @@
+/* ── Page shell ──────────────────────────────────────── */
+.bl-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #f3f4f6;
+  overflow: hidden;
+}
+
+/* ── Toolbar ─────────────────────────────────────────── */
+.bl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: #1f2937;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.bl-back-btn {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.bl-back-btn:hover { background: rgba(255,255,255,0.22); }
+
+.bl-toolbar-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bl-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.bl-sub {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 1px;
+}
+
+.bl-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bl-pdf-btn {
+  background: var(--primary, #2ecc71);
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, opacity 0.15s;
+}
+.bl-pdf-btn:hover:not(:disabled) { background: #27ae60; }
+.bl-pdf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Filter bar ──────────────────────────────────────── */
+.bl-filterbar {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.bl-search {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.bl-search:focus { border-color: var(--primary, #2ecc71); }
+
+.bl-toggle-all {
+  background: #f3f4f6;
+  border: 1.5px solid #d1d5db;
+  color: #374151;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.bl-toggle-all:hover { background: #e5e7eb; }
+
+/* ── Grid ────────────────────────────────────────────── */
+.bl-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.bl-empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 3rem;
+}
+
+/* ── Label card ──────────────────────────────────────── */
+.bl-label-card {
+  position: relative;
+  background: #fff;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  user-select: none;
+}
+
+.bl-label-card:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.bl-label-card--selected {
+  border-color: var(--primary, #2ecc71);
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
+}
+
+/* Selection checkbox badge */
+.bl-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #fff;
+  transition: all 0.12s;
+}
+.bl-check--on {
+  background: var(--primary, #2ecc71);
+  border-color: var(--primary, #2ecc71);
+}
+
+/* Barcode SVG area — must fill full card width with no shrinking */
+.bl-barcode {
+  width: 100%;
+  background: #fff;
+  padding: 4px 0;
+  /* white quiet-zone margins on left/right */
+  padding-left: 0;
+  padding-right: 0;
+}
+.bl-barcode svg {
+  display: block;
+  width: 100%;
+  /* height is set by the SVG height attribute; do not override */
+}
+
+/* SKU monospace line */
+.bl-sku {
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem;
+  text-align: center;
+  color: #374151;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Product info block */
+.bl-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-top: 0.3rem;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.bl-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+  text-align: center;
+  /* clamp to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bl-price {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--primary, #2ecc71);
+  text-align: center;
+}
+
+.bl-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: center;
+}
+
+.bl-cat {
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: #e0f2f1;
+  color: #065f46;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bl-desc {
+  font-size: 0.68rem;
+  color: #9ca3af;
+  /* truncate long descriptions */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+  display: block;
+}
+
+.bl-stock {
+  font-size: 0.68rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* ── Footer info strip ───────────────────────────────── */
+.bl-footer {
+  padding: 0.5rem 1.25rem;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-align: center;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bl-footer-hint {
+  color: #6b7280;
+}
+
+.bl-refresh-btn {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.bl-refresh-btn:hover:not(:disabled) { background: rgba(255,255,255,0.25); }
+.bl-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 600px) {
+  .bl-toolbar { flex-wrap: wrap; }
+  .bl-toolbar-center { align-items: flex-start; order: 3; flex-basis: 100%; }
+  .bl-grid { grid-template-columns: repeat(2, 1fr); padding: 0.75rem; }
+  .bl-filterbar { flex-wrap: wrap; }
+}
+
+@media (max-width: 360px) {
+  .bl-grid { grid-template-columns: 1fr; }
+}
