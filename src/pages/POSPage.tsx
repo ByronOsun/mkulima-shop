@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CartItem, Product, ReceiptData } from '../types';
-import { getProductsCached, getCategoriesCached } from '../services/offlineService';
+import { supabaseService } from '../services/supabase';
 import ProductList from '../components/ProductList';
 import Cart from '../components/Cart';
 import CreditCheckout from '../components/CreditCheckout';
@@ -70,7 +70,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     try {
       setLoading(true);
       setError(null);
-      const data = await getProductsCached(fresh => setProducts(fresh));
+      const data = await supabaseService.getProducts();
       setProducts(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load products');
@@ -81,7 +81,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
 
   const loadCategories = async () => {
     try {
-      const categoryData = await getCategoriesCached();
+      const categoryData = await supabaseService.getCategories();
       if (categoryData) setCategories(categoryData.map(c => c.name));
     } catch (err) {
       console.error('Failed to load categories:', err);
@@ -132,7 +132,8 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     setCart([]);
     setShowMobileCart(false);
     setShowCreditCheckout(false);
-    getProductsCached(fresh => setProducts(fresh)).catch(() => {});
+    supabaseService.getProducts().then(setProducts).catch(() => {});
+    supabaseService.getCategories().then(cats => setCategories(cats.map(c => c.name))).catch(() => {});
     onCheckoutSuccess(receipt);
   };
 
@@ -145,11 +146,6 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
       .some(value => value!.toLowerCase().includes(normalizedSearch));
   });
 
-  const orderedCategories = [
-    ...categories,
-    ...Array.from(new Set(searchedProducts.map(product => product.category).filter(Boolean))),
-  ].filter((value, index, array) => array.indexOf(value) === index);
-
   const categoryColors = [
     { bg: '#1f2937', fg: '#ffffff', accent: '#60a5fa' },
     { bg: '#14532d', fg: '#ffffff', accent: '#4ade80' },
@@ -159,13 +155,17 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     { bg: '#334155', fg: '#ffffff', accent: '#facc15' },
   ];
 
-  const groupedCategories = orderedCategories
-    .map((categoryName, index) => ({
-      category: categoryName,
-      color: categoryColors[index % categoryColors.length],
-      products: searchedProducts.filter(product => product.category === categoryName),
-    }))
-    .filter(group => group.products.length > 0);
+  const groupedCategories = categories.length > 0
+    ? categories
+        .map((categoryName, index) => ({
+          category: categoryName,
+          color: categoryColors[index % categoryColors.length],
+          products: searchedProducts.filter(p => p.category === categoryName),
+        }))
+        .filter(group => group.products.length > 0)
+    : searchedProducts.length > 0
+      ? [{ category: 'All Products', color: categoryColors[0], products: searchedProducts }]
+      : [];
 
   if (loading) return <div className="page-loader">Loading products...</div>;
 

@@ -743,6 +743,13 @@ export const supabaseService = {
   ): Promise<StockMovement[]> {
     if (supabase) {
       try {
+        // stock_movements has no tenant_id — filter via the tenant's product IDs
+        const { data: tenantProducts } = await applyTenantFilter(
+          supabase.from('products').select('id')
+        );
+        const tenantProductIds = (tenantProducts ?? []).map((p: any) => p.id as string);
+        if (tenantProductIds.length === 0) return [];
+
         let query = supabase
           .from('stock_movements')
           .select('*')
@@ -750,7 +757,10 @@ export const supabaseService = {
           .range(offset, offset + limit - 1);
 
         if (productId) {
+          if (!tenantProductIds.includes(productId)) return [];
           query = query.eq('product_id', productId);
+        } else {
+          query = query.in('product_id', tenantProductIds);
         }
 
         const { data, error } = await query;
@@ -1149,5 +1159,55 @@ export const supabaseService = {
     if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
     const { error } = await supabase.from('staff_users').delete().eq('id', userId);
     if (error) throw new Error(error.message);
+  },
+
+  // ─── Super-admin cross-tenant data reads ───────────────────────────────────
+
+  async getSuperAdminTenantCategories(tenantId: string): Promise<any[]> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('name');
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async getSuperAdminTenantSales(tenantId: string, days = 30): Promise<any[]> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const since = new Date(Date.now() - days * 86400000).toISOString();
+    const { data, error } = await supabase
+      .from('sales')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .gte('sale_date', since)
+      .order('sale_date', { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async getSuperAdminTenantFinance(tenantId: string): Promise<any[]> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('finance_expenses')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('expense_date', { ascending: false })
+      .limit(100);
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async getSuperAdminTenantProducts(tenantId: string): Promise<any[]> {
+    if (!supabase) throw new Error(DEMO_DISABLED_MESSAGE);
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('name');
+    if (error) throw new Error(error.message);
+    return data || [];
   },
 };

@@ -56,12 +56,18 @@ const deriveRoleFromUsername = (value: string) => {
 async function fetchTenantConfig(tenantId: string): Promise<TenantConfig | undefined> {
   if (!supabase) return undefined;
   try {
-    const { data } = await supabase.from('tenants').select('shop_name, address, phone').eq('id', tenantId).single();
+    const { data } = await supabase
+      .from('tenants')
+      .select('shop_name, address, phone, header_text, footer_text')
+      .eq('id', tenantId)
+      .single();
     if (!data) return undefined;
     return {
       shopName: data.shop_name,
       address: data.address || undefined,
       phone: data.phone || undefined,
+      headerText: data.header_text || undefined,
+      footerText: data.footer_text || undefined,
     };
   } catch {
     return undefined;

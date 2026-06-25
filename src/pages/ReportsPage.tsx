@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DaySalesReport, Sale, UserRole } from '../types';
 import { supabaseService } from '../services/supabase';
 import { savePdf } from '../services/pdf';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/ReportsPage.css';
 
 type CashierOption = {
@@ -11,9 +12,6 @@ type CashierOption = {
   label: string;
 };
 
-const COMPANY_NAME = '';
-const COMPANY_ADDRESS = 'Off Kisumu-Kakamega Road, Kiboswa, Kenya';
-const COMPANY_CONTACT = 'Tel: 0722 843 544';
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-KE', {
@@ -60,6 +58,8 @@ const buildCashierOptions = (sales: Sale[]): CashierOption[] => {
 };
 
 export default function ReportsPage() {
+  const { user } = useAuth();
+  const tc = user?.tenantConfig;
   const [report, setReport] = useState<DaySalesReport | null>(null);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loadingReport, setLoadingReport] = useState(true);
@@ -212,10 +212,11 @@ export default function ReportsPage() {
       y += rowHeight;
     };
 
-    addCenteredLine(COMPANY_NAME, 15, true);
+    if (tc?.shopName) addCenteredLine(tc.shopName, 15, true);
     addCenteredLine('Point of Sale System', 11, false);
-    addCenteredLine(COMPANY_ADDRESS, 10, false);
-    addCenteredLine(COMPANY_CONTACT, 10, false);
+    if (tc?.address) addCenteredLine(tc.address, 10, false);
+    if (tc?.phone) addCenteredLine(tc.phone, 10, false);
+    if (tc?.headerText) addCenteredLine(tc.headerText, 9, false);
     addCenteredLine(`Cashier Report: ${selectedCashierLabel}`, 12, true);
     addCenteredLine(`Date: ${selectedDate}`, 10, false);
     addCenteredLine('Report includes items sold, amount, and payment method for each transaction.', 9, false);

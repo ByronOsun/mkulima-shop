@@ -131,6 +131,8 @@ export interface TenantConfig {
   shopName: string;
   address?: string;
   phone?: string;
+  headerText?: string;
+  footerText?: string;
 }
 
 export interface User {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Sale } from '../types';
-import { supabaseService, supabase } from '../services/supabase';
+import { supabaseService, supabase, getCurrentTenant } from '../services/supabase';
 import { printOrShareReceipt } from '../services/pdf';
 import '../styles/CreditSalesPage.css';
 
@@ -36,9 +36,13 @@ export default function CreditSalesPage() {
         // v2 realtime: use channel/postgres_changes where available
         // Fallback to from().on for older clients via any cast
         if ((supabase as any).channel) {
+          const tenantId = getCurrentTenant();
+          const filter = tenantId
+            ? `tenant_id=eq.${tenantId}`
+            : 'tenant_id=is.null';
           channel = (supabase as any)
-            .channel('public:sales')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, (payload: any) => {
+            .channel('public:sales:tenant')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'sales', filter }, (payload: any) => {
               const row = payload?.new || payload?.record || null;
               if (!row) return;
               if (row.payment_method === 'credit') {

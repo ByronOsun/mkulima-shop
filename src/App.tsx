@@ -52,7 +52,7 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState<PageType>('pos');
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [time, setTime] = useState(new Date());
-  const { isOnline, pendingCount, syncing } = useNetworkStatus();
+  const { isOnline } = useNetworkStatus();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -117,18 +117,7 @@ function AppContent() {
   return (
     <div className="app">
       {!isOnline && (
-        <div className="network-banner offline">
-          {syncing
-            ? `Syncing ${pendingCount} sale${pendingCount !== 1 ? 's' : ''}…`
-            : pendingCount > 0
-              ? `Offline — ${pendingCount} sale${pendingCount !== 1 ? 's' : ''} pending sync`
-              : 'Offline'}
-        </div>
-      )}
-      {isOnline && syncing && (
-        <div className="network-banner syncing">
-          Syncing {pendingCount} sale{pendingCount !== 1 ? 's' : ''}…
-        </div>
+        <div className="network-banner offline">Offline</div>
       )}
       <header className="app-header">
         <div className="header-left">

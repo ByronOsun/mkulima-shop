@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Product } from '../types';
 import { supabaseService } from '../services/supabase';
 import { savePdf } from '../services/pdf';
+import { useAuth } from '../contexts/AuthContext';
 import '../styles/StockRequisitionPage.css';
 
 
 export default function StockRequisitionPage() {
+  const { user } = useAuth();
+  const tc = user?.tenantConfig;
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -175,14 +178,11 @@ export default function StockRequisitionPage() {
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text('Farm Supply & Distribution', margin, y);
+    if (tc?.shopName) { doc.text(tc.shopName, margin, y); y += 4; }
+    if (tc?.phone)    { doc.text(`Contact: ${tc.phone}`, margin, y); y += 4; }
+    if (tc?.address)  { doc.text(tc.address, margin, y); y += 4; }
+    if (tc?.headerText) { doc.text(tc.headerText, margin, y); y += 4; }
     y += 4;
-    doc.text('Contact: 0722843544', margin, y);
-    y += 4;
-    doc.text('Off Kisumu Kakamega Road Kiboswa', margin, y);
-    y += 4;
-    doc.text('Kisumu Kenya', margin, y);
-    y += 8;
 
     // Line separator
     doc.line(margin, y, pageWidth - margin, y);

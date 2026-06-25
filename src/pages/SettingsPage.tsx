@@ -1,5 +1,5 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
-import { supabase } from '../services/supabase';
+import { supabase, supabaseService } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/SettingsPage.css';
 
@@ -21,7 +21,7 @@ interface StaffUser {
 interface Category {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   created_at: string;
 }
 
@@ -99,7 +99,11 @@ function UsersTab({ tenantId }: { tenantId?: string }) {
         .select('id, username, display_name, role, is_active, created_at')
         .eq('role', 'cashier')
         .order('created_at', { ascending: false });
-      if (tenantId) query = query.eq('tenant_id', tenantId);
+      if (tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      } else {
+        query = query.is('tenant_id', null);
+      }
       const { data, error: err } = await query;
       if (err) throw new Error(err.message);
       setUsers((data as StaffUser[]) || []);
@@ -435,19 +439,9 @@ function CategoriesTab({ tenantId }: { tenantId?: string }) {
   };
 
   const loadCategories = async () => {
-    if (!supabase) {
-      setError('Supabase not configured');
-      setLoading(false);
-      return;
-    }
     try {
       setLoading(true);
-      const { data, error: err } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
-      if (err) throw new Error(err.message);
-      const loaded = (data as Category[]) || [];
+      const loaded = await supabaseService.getCategories();
       const savedOrder = getSavedOrder();
       if (savedOrder.length > 0) {
         const map = new Map(loaded.map(c => [c.id, c]));
@@ -466,7 +460,7 @@ function CategoriesTab({ tenantId }: { tenantId?: string }) {
     }
   };
 
-  useEffect(() => { loadCategories(); }, []);
+  useEffect(() => { loadCategories(); }, [tenantId]);
 
   const moveUp = (index: number) => {
     if (index === 0) return;
@@ -515,11 +509,15 @@ function CategoriesTab({ tenantId }: { tenantId?: string }) {
     if (!supabase) { setError('Supabase not configured'); return; }
     const cat = categories.find(c => c.id === id);
     try {
-      // Delete all products in this category first
+      // Delete all products in this category (match tenant_id or null for orphans)
       if (cat) {
-        let productDel = supabase.from('products').delete().eq('category', cat.name);
-        if (tenantId) productDel = productDel.eq('tenant_id', tenantId);
-        const { error: prodErr } = await productDel;
+        const { error: prodErr } = await supabase
+          .from('products')
+          .delete()
+          .eq('category', cat.name)
+          .or(tenantId
+            ? `tenant_id.eq.${tenantId},tenant_id.is.null`
+            : 'tenant_id.is.null');
         if (prodErr) throw new Error(prodErr.message);
       }
       // Then delete the category itself
