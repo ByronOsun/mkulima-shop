@@ -13,9 +13,10 @@ import ReceiptPage from './pages/ReceiptPage';
 import HistoryPage from './pages/HistoryPage';
 import CreditSalesPage from './pages/CreditSalesPage';
 import BarcodeLabelsPage from './pages/BarcodeLabelsPage';
+import SettingsPage from './pages/SettingsPage';
 import { ReceiptData } from './types';
 
-type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'stock-requisition' | 'finance' | 'receipt' | 'history' | 'credit-sales' | 'barcode-labels';
+type PageType = 'pos' | 'inventory' | 'sales' | 'reports' | 'stock-requisition' | 'finance' | 'receipt' | 'history' | 'credit-sales' | 'barcode-labels' | 'settings';
 
 function LoadingScreen() {
   const [progress, setProgress] = useState(0);
@@ -98,6 +99,8 @@ function AppContent() {
         return <HistoryPage />;
       case 'credit-sales':
         return <CreditSalesPage />;
+      case 'settings':
+        return isAdmin ? <SettingsPage onExit={handleBackToPos} /> : null;
       case 'receipt':
         return <ReceiptPage receipt={receipt} onBackToPos={handleBackToPos} />;
       default:
@@ -194,6 +197,13 @@ function AppContent() {
               >
                 <span className="nav-icon">📑</span>
                 <span className="nav-label">Credit</span>
+              </button>
+              <button
+                className={`nav-btn ${currentPage === 'settings' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('settings')}
+              >
+                <span className="nav-icon">⚙️</span>
+                <span className="nav-label">Settings</span>
               </button>
             </>
           )}
