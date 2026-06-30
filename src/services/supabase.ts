@@ -674,6 +674,7 @@ export const supabaseService = {
   async addProduct(newProduct: DemoProductInput): Promise<Product> {
     const normalizedProduct: DemoProductInput = {
       ...newProduct,
+      buying_price: newProduct.buying_price !== undefined ? Math.round(Number(newProduct.buying_price)) : undefined,
       unit_price: Math.round(Number(newProduct.unit_price)),
     };
 
@@ -783,6 +784,7 @@ export const supabaseService = {
   async updateProduct(productId: string, updates: Partial<Product>): Promise<Product> {
     const normalizedUpdates: Partial<Product> = {
       ...updates,
+      ...(updates.buying_price !== undefined ? { buying_price: Math.round(Number(updates.buying_price)) } : {}),
       ...(updates.unit_price !== undefined ? { unit_price: Math.round(Number(updates.unit_price)) } : {}),
     };
 

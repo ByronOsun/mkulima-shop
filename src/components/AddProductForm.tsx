@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Category, Product } from '../types';
 import { supabaseService } from '../services/supabase';
-import { capturePhoto } from '../services/camera';
 import '../styles/AddProductForm.css';
 
 interface AddProductFormProps {
@@ -19,24 +18,13 @@ export default function AddProductForm({
 }: AddProductFormProps) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState(categories[0]?.name || '');
-  const [price, setPrice] = useState('');
+  const [buyingPrice, setBuyingPrice] = useState('');
+  const [sellingPrice, setSellingPrice] = useState('');
   const [quantity, setQuantity] = useState('');
   const [quantityMode, setQuantityMode] = useState<QuantityMode>('single');
   const [quantityPerDozen, setQuantityPerDozen] = useState('12');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState('');
-
-  const handleCapturePhoto = async () => {
-    try {
-      const dataUrl = await capturePhoto();
-      if (dataUrl) {
-        setImageUrl(dataUrl);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to capture photo');
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +40,13 @@ export default function AddProductForm({
       return;
     }
 
-    if (!price || parseFloat(price) <= 0) {
-      setError('Price must be greater than 0');
+    if (!buyingPrice || parseFloat(buyingPrice) <= 0) {
+      setError('Buying price must be greater than 0');
+      return;
+    }
+
+    if (!sellingPrice || parseFloat(sellingPrice) <= 0) {
+      setError('Selling price must be greater than 0');
       return;
     }
 
@@ -74,25 +67,24 @@ export default function AddProductForm({
           ? Math.round(parseFloat(quantity) * parseFloat(quantityPerDozen))
           : Math.round(parseFloat(quantity));
 
-      const normalizedUnitPrice = Math.round(parseFloat(price));
-
       const newProduct = await supabaseService.addProduct({
         name: name.trim(),
         category,
-        unit_price: normalizedUnitPrice,
+        buying_price: Math.round(parseFloat(buyingPrice)),
+        unit_price: Math.round(parseFloat(sellingPrice)),
         quantity_in_stock: finalQuantity,
         sku: `SKU-${Date.now()}`,
         description: '',
-        image_url: imageUrl,
+        image_url: '',
         reorder_level: Math.max(Math.round(finalQuantity * 0.2), 1),
       });
 
       onProductAdded(newProduct);
       setName('');
-      setPrice('');
+      setBuyingPrice('');
+      setSellingPrice('');
       setQuantity('');
       setQuantityPerDozen('12');
-      setImageUrl('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add product');
     } finally {
@@ -105,10 +97,12 @@ export default function AddProductForm({
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Add New Product</h2>
-          <button className="close-btn" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="form-layout">
+        <form onSubmit={handleSubmit} className="product-form">
+          {error && <div className="form-error">{error}</div>}
+
           <div className="form-group">
             <label htmlFor="name">Product Name *</label>
             <input
@@ -118,7 +112,6 @@ export default function AddProductForm({
               onChange={e => setName(e.target.value)}
               placeholder="e.g., Dairy Meal 50kg"
               disabled={loading}
-              className="form-input"
             />
           </div>
 
@@ -129,7 +122,6 @@ export default function AddProductForm({
               value={category}
               onChange={e => setCategory(e.target.value)}
               disabled={loading}
-              className="form-input"
             >
               {categories.map(cat => (
                 <option key={cat.id} value={cat.name}>
@@ -139,35 +131,33 @@ export default function AddProductForm({
             </select>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="price">Price (KSH) *</label>
-            <input
-              id="price"
-              type="number"
-              value={price}
-              onChange={e => setPrice(e.target.value)}
-              placeholder="0"
-              min="0"
-              step="1"
-              disabled={loading}
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Product Photo</label>
-            <div className="photo-capture">
-              {imageUrl && (
-                <img src={imageUrl} alt="Product preview" className="photo-preview" />
-              )}
-              <button
-                type="button"
-                className="btn-cancel"
-                onClick={handleCapturePhoto}
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="buyingPrice">Buying Price (KSH) *</label>
+              <input
+                id="buyingPrice"
+                type="number"
+                value={buyingPrice}
+                onChange={e => setBuyingPrice(e.target.value)}
+                placeholder="0"
+                min="0"
+                step="1"
                 disabled={loading}
-              >
-                📷 {imageUrl ? 'Retake Photo' : 'Take Photo'}
-              </button>
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="sellingPrice">Selling Price (KSH) *</label>
+              <input
+                id="sellingPrice"
+                type="number"
+                value={sellingPrice}
+                onChange={e => setSellingPrice(e.target.value)}
+                placeholder="0"
+                min="0"
+                step="1"
+                disabled={loading}
+              />
             </div>
           </div>
 
@@ -206,39 +196,38 @@ export default function AddProductForm({
                   min="0"
                   step="1"
                   disabled={loading}
-                  className="form-input"
                 />
               </div>
             ) : (
               <div className="dozen-group">
-                <div className="form-group">
-                  <label htmlFor="quantity">Quantity *</label>
-                  <input
-                    id="quantity"
-                    type="number"
-                    value={quantity}
-                    onChange={e => setQuantity(e.target.value)}
-                    placeholder="e.g., 5"
-                    min="0"
-                    step="1"
-                    disabled={loading}
-                    className="form-input"
-                  />
-                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="quantity">Quantity *</label>
+                    <input
+                      id="quantity"
+                      type="number"
+                      value={quantity}
+                      onChange={e => setQuantity(e.target.value)}
+                      placeholder="e.g., 5"
+                      min="0"
+                      step="1"
+                      disabled={loading}
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="quantityPerDozen">Items Per Bulk Unit *</label>
-                  <input
-                    id="quantityPerDozen"
-                    type="number"
-                    value={quantityPerDozen}
-                    onChange={e => setQuantityPerDozen(e.target.value)}
-                    placeholder="12"
-                    min="1"
-                    step="1"
-                    disabled={loading}
-                    className="form-input"
-                  />
+                  <div className="form-group">
+                    <label htmlFor="quantityPerDozen">Items Per Bulk Unit *</label>
+                    <input
+                      id="quantityPerDozen"
+                      type="number"
+                      value={quantityPerDozen}
+                      onChange={e => setQuantityPerDozen(e.target.value)}
+                      placeholder="12"
+                      min="1"
+                      step="1"
+                      disabled={loading}
+                    />
+                  </div>
                 </div>
 
                 <div className="total-display">
@@ -253,13 +242,11 @@ export default function AddProductForm({
             )}
           </div>
 
-          {error && <div className="error-message">{error}</div>}
-
-          <div className="form-actions">
+          <div className="modal-footer">
             <button type="button" className="btn-cancel" onClick={onClose} disabled={loading}>
               Cancel
             </button>
-            <button type="submit" className="btn-submit" disabled={loading}>
+            <button type="submit" className="btn-save" disabled={loading}>
               {loading ? 'Adding...' : 'Add Product'}
             </button>
           </div>

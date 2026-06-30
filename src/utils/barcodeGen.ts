@@ -25,12 +25,13 @@ export function renderBarcodeToSVG(svg: SVGSVGElement, value: string, heightPx =
 }
 
 /**
- * Creates an off-screen canvas with the barcode at high pixel density.
- * width:4 = 4 px per module → stays readable at 300 DPI print resolution.
+ * Creates an off-screen canvas with the barcode.
+ * width:2 keeps the canvas small (≈240×70px) while remaining fully scannable
+ * at print resolution, and avoids OOM on low-memory Android devices.
  * Call canvas.toDataURL('image/png') to embed in jsPDF.
  */
-export function createBarcodeCanvas(value: string, heightPx = 100): HTMLCanvasElement {
+export function createBarcodeCanvas(value: string, heightPx = 60): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
-  JsBarcode(canvas, value, { ...BASE_OPTIONS, height: heightPx, margin: 8, width: 4 });
+  JsBarcode(canvas, value, { ...BASE_OPTIONS, height: heightPx, margin: 6, width: 2 });
   return canvas;
 }

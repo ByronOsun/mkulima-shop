@@ -20,6 +20,7 @@ export default function EditProductModal({
     description: product.description || '',
     category: product.category || '',
     sku: product.sku,
+    buying_price: product.buying_price ?? 0,
     unit_price: product.unit_price,
     quantity_in_stock: product.quantity_in_stock,
     reorder_level: product.reorder_level,
@@ -31,14 +32,12 @@ export default function EditProductModal({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    const parsedNumber = parseFloat(value) || 0;
+    const numericFields = ['buying_price', 'unit_price', 'quantity_in_stock', 'reorder_level'];
 
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'unit_price' || name === 'quantity_in_stock' || name === 'reorder_level'
-        ? name === 'unit_price'
-          ? Math.round(parsedNumber)
-          : parsedNumber
+      [name]: numericFields.includes(name)
+        ? Math.round(parseFloat(value) || 0)
         : value,
     }));
   };
@@ -52,8 +51,13 @@ export default function EditProductModal({
       return;
     }
 
+    if (formData.buying_price <= 0) {
+      setError('Buying price must be greater than 0');
+      return;
+    }
+
     if (formData.unit_price <= 0) {
-      setError('Unit price must be greater than 0');
+      setError('Selling price must be greater than 0');
       return;
     }
 
@@ -71,6 +75,7 @@ export default function EditProductModal({
       setLoading(true);
       await onSave({
         ...formData,
+        buying_price: formData.buying_price,
         unit_price: Math.round(formData.unit_price),
       });
     } catch (err) {
@@ -88,7 +93,7 @@ export default function EditProductModal({
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="edit-form">
+        <form onSubmit={handleSubmit} className="product-form">
           {error && <div className="form-error">{error}</div>}
 
           <div className="form-group">
@@ -152,7 +157,22 @@ export default function EditProductModal({
 
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="unit_price">Unit Price (KES) *</label>
+              <label htmlFor="buying_price">Buying Price (KES) *</label>
+              <input
+                id="buying_price"
+                type="number"
+                name="buying_price"
+                value={formData.buying_price}
+                onChange={handleChange}
+                placeholder="0"
+                step="1"
+                min="0"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="unit_price">Selling Price (KES) *</label>
               <input
                 id="unit_price"
                 type="number"
@@ -165,7 +185,9 @@ export default function EditProductModal({
                 required
               />
             </div>
+          </div>
 
+          <div className="form-row">
             <div className="form-group">
               <label htmlFor="quantity_in_stock">Stock Quantity *</label>
               <input

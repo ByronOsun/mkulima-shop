@@ -5,7 +5,10 @@ import { Capacitor } from '@capacitor/core';
  * writes to the app cache directory and opens the system share sheet so the
  * user can view it in a PDF reader or save it to Downloads.
  */
-export async function savePdf(doc: { output(t: 'datauristring'): string; save(name: string): void }, filename: string): Promise<void> {
+export async function savePdf(
+  doc: { output(t: 'datauristring'): string; save(name: string): void },
+  filename: string,
+): Promise<void> {
   if (!Capacitor.isNativePlatform()) {
     doc.save(filename);
     return;
@@ -18,17 +21,43 @@ export async function savePdf(doc: { output(t: 'datauristring'): string; save(na
 
   const base64 = doc.output('datauristring').split(',')[1];
 
-  const { uri } = await Filesystem.writeFile({
-    path: filename,
-    data: base64,
-    directory: Directory.Cache,
-  });
+  // Retry the filesystem write up to 3 times — Android can transiently fail
+  // on the first write to Cache after a cold start.
+  let uri = '';
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const result = await Filesystem.writeFile({
+        path: filename,
+        data: base64,
+        directory: Directory.Cache,
+        recursive: true,
+      });
+      uri = result.uri;
+      break;
+    } catch (err) {
+      lastErr = err;
+      await new Promise<void>(r => setTimeout(r, 150 * (attempt + 1)));
+    }
+  }
 
-  await Share.share({
-    title: filename,
-    url: uri,
-    dialogTitle: 'Open PDF',
-  });
+  if (!uri) {
+    throw new Error(
+      `Could not write PDF to device storage after 3 attempts. ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`
+    );
+  }
+
+  // Share.share throws if the user dismisses the sheet on some Android versions —
+  // treat that as success (the file is already written).
+  try {
+    await Share.share({ title: filename, url: uri, dialogTitle: 'Open or Save PDF' });
+  } catch (shareErr) {
+    const msg = String(shareErr).toLowerCase();
+    // "cancel" / "share cancelled" / "activity not found" are user-initiated — not errors
+    if (!msg.includes('cancel') && !msg.includes('activity') && !msg.includes('denied')) {
+      throw shareErr;
+    }
+  }
 }
 
 /**

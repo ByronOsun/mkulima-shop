@@ -71,7 +71,8 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-.edit-form {
+.edit-form,
+.product-form {
   padding: 1.5rem;
 }
 

@@ -272,7 +272,8 @@ body {
 
 .app-main {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 1.5rem;
   background: var(--light);
   min-width: 0;
@@ -377,12 +378,24 @@ body {
   .sidebar-nav {
     width: 100%;
     flex-direction: row;
-    padding: 0.5rem;
+    padding: 0.5rem 0.25rem;
     height: auto;
     order: 2;
-    justify-content: space-around;
+    justify-content: flex-start;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .sidebar-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-btn {
+    min-width: 70px;
+    max-width: 70px;
+    flex: 0 0 70px;
+    margin: 0 0.1rem;
   }
 
   .app-main {
@@ -428,7 +441,9 @@ body {
   .nav-btn {
     padding: 0.5rem 0.2rem;
     font-size: 0.62rem;
-    min-width: 56px;
+    min-width: 64px;
+    max-width: 64px;
+    flex: 0 0 64px;
   }
 
   .nav-icon {

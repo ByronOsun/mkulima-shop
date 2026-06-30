@@ -6,6 +6,7 @@ export interface Product {
   category: string;
   sku: string;
   description?: string;
+  buying_price?: number;
   unit_price: number;
   quantity_in_stock: number;
   reorder_level: number;

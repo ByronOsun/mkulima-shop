@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
 import { supabaseService } from '../services/supabase';
 import { renderBarcodeToSVG, createBarcodeCanvas } from '../utils/barcodeGen';
+import { savePdf } from '../services/pdf';
 import '../styles/BarcodeLabelsPage.css';
 
 interface Props {
@@ -62,19 +63,26 @@ function LabelCard({ product, selected, onToggle }: LabelCardProps) {
 }
 
 // ── PDF generation ────────────────────────────────────────────────────
-async function generateLabelsPDF(products: Product[]) {
+// Yields to the event loop every CHUNK_SIZE labels so the Android WebView
+// watchdog doesn't kill the app during long generations.
+const CHUNK_SIZE = 8;
+
+async function generateLabelsPDF(
+  products: Product[],
+  onProgress: (pct: number) => void,
+): Promise<void> {
   const { jsPDF } = await import('jspdf');
 
-  // A4 portrait — 2 columns of labels
+  // A4 portrait — 4 columns of labels
   const PAGE_W = 210;
   const PAGE_H = 297;
-  const MARGIN_X = 8;
-  const MARGIN_Y = 10;
-  const GAP_X = 5;
-  const GAP_Y = 4;
-  const COLS = 2;
-  const LABEL_W = (PAGE_W - MARGIN_X * 2 - GAP_X * (COLS - 1)) / COLS; // ≈ 96.5 mm
-  const LABEL_H = 46;
+  const MARGIN_X = 6;
+  const MARGIN_Y = 8;
+  const GAP_X = 3;
+  const GAP_Y = 3;
+  const COLS = 4;
+  const LABEL_W = (PAGE_W - MARGIN_X * 2 - GAP_X * (COLS - 1)) / COLS; // ≈ 45.75 mm
+  const LABEL_H = 34;
   const rowsPerPage = Math.floor((PAGE_H - MARGIN_Y * 2 + GAP_Y) / (LABEL_H + GAP_Y));
 
   const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
@@ -83,6 +91,12 @@ async function generateLabelsPDF(products: Product[]) {
   let row = 0;
 
   for (let i = 0; i < products.length; i++) {
+    // Yield every CHUNK_SIZE labels so the JS event loop stays responsive
+    if (i > 0 && i % CHUNK_SIZE === 0) {
+      onProgress(Math.round((i / products.length) * 90)); // 0–90% during render
+      await new Promise<void>(r => setTimeout(r, 0));
+    }
+
     const p = products[i];
 
     if (i > 0 && col === 0 && row === rowsPerPage) {
@@ -96,55 +110,64 @@ async function generateLabelsPDF(products: Product[]) {
     // Label border + white fill
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.25);
+    doc.setLineWidth(0.2);
     doc.rect(x, y, LABEL_W, LABEL_H, 'FD');
 
-    // ── Barcode image from canvas (verified Code 128 via JsBarcode) ──
-    const barcodeX = x + 3;
-    const barcodeW = LABEL_W - 6;
-    const barcodeY = y + 2.5;
-    const barcodeH = 20;
+    // ── Barcode ───────────────────────────────────────────────────
+    const barcodeX = x + 2;
+    const barcodeW = LABEL_W - 4;
+    const barcodeY = y + 2;
+    const barcodeH = 14;
 
+    let barcodeOk = false;
     try {
-      const canvas = createBarcodeCanvas(p.sku, 120);
-      doc.addImage(canvas.toDataURL('image/png'), 'PNG', barcodeX, barcodeY, barcodeW, barcodeH);
+      const canvas = createBarcodeCanvas(p.sku, 60);
+      const dataUrl = canvas.toDataURL('image/png');
+      doc.addImage(dataUrl, 'PNG', barcodeX, barcodeY, barcodeW, barcodeH);
+      // Explicitly release canvas memory
+      canvas.width = 0;
+      canvas.height = 0;
+      barcodeOk = true;
     } catch {
-      // If barcode generation fails for this SKU, leave blank and continue
-      doc.setFillColor(240, 240, 240);
-      doc.rect(barcodeX, barcodeY, barcodeW, barcodeH, 'F');
-      doc.setFontSize(6);
-      doc.setTextColor(150);
-      doc.text('(barcode error)', x + LABEL_W / 2, barcodeY + barcodeH / 2, { align: 'center' });
+      // Barcode error — draw a placeholder and keep going
     }
 
-    // ── SKU — monospace, centred under barcode ────────────────────
-    const skuY = barcodeY + barcodeH + 3.5;
+    if (!barcodeOk) {
+      doc.setFillColor(240, 240, 240);
+      doc.rect(barcodeX, barcodeY, barcodeW, barcodeH, 'F');
+      doc.setFontSize(5);
+      doc.setTextColor(150, 150, 150);
+      doc.text('—', x + LABEL_W / 2, barcodeY + barcodeH / 2, { align: 'center' });
+    }
+
+    // ── SKU ───────────────────────────────────────────────────────
+    const skuY = barcodeY + barcodeH + 2.5;
     doc.setFont('courier', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(5.5);
+    doc.setTextColor(60, 60, 60);
     doc.text(p.sku, x + LABEL_W / 2, skuY, { align: 'center' });
 
     // ── Product name ──────────────────────────────────────────────
-    const nameY = skuY + 4.5;
+    const nameY = skuY + 3.5;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(7);
     doc.setTextColor(15, 15, 15);
-    const nameLines = doc.splitTextToSize(p.name, LABEL_W - 6) as string[];
+    const nameLines = doc.splitTextToSize(p.name, LABEL_W - 4) as string[];
     doc.text(nameLines.slice(0, 2), x + LABEL_W / 2, nameY, { align: 'center' });
 
     // ── Price ─────────────────────────────────────────────────────
-    const priceY = nameY + nameLines.slice(0, 2).length * 4.5;
+    const priceY = nameY + nameLines.slice(0, 2).length * 3.5;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setTextColor(39, 174, 96);
     doc.text(fmt(p.unit_price), x + LABEL_W / 2, priceY, { align: 'center' });
 
     // ── Category ──────────────────────────────────────────────────
-    const catY = priceY + 4.2;
+    const catY = priceY + 3.5;
     if (catY < y + LABEL_H - 0.5) {
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(120, 120, 120);
+      doc.setFontSize(5.5);
+      doc.setTextColor(130, 130, 130);
       doc.text(p.category, x + LABEL_W / 2, catY, { align: 'center' });
     }
 
@@ -152,7 +175,9 @@ async function generateLabelsPDF(products: Product[]) {
     if (col >= COLS) { col = 0; row++; }
   }
 
-  doc.save('mkulima-barcode-labels.pdf');
+  onProgress(92); // Render done — now saving
+  await savePdf(doc, 'vizia-barcode-labels.pdf');
+  onProgress(100);
 }
 
 // ── Main page ─────────────────────────────────────────────────────────
@@ -164,6 +189,7 @@ export default function BarcodeLabelsPage({ onBack }: Props) {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
+  const [genProgress, setGenProgress] = useState(0);
 
   const loadProducts = useCallback((isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -212,11 +238,16 @@ export default function BarcodeLabelsPage({ onBack }: Props) {
     const toExport = products.filter(p => selectedIds.has(p.id));
     if (toExport.length === 0) return;
     setGenerating(true);
+    setGenProgress(0);
     try {
-      await new Promise(r => setTimeout(r, 30));
-      await generateLabelsPDF(toExport);
+      // Small delay so the progress UI renders before the heavy work begins
+      await new Promise<void>(r => setTimeout(r, 60));
+      await generateLabelsPDF(toExport, setGenProgress);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'PDF generation failed. Try selecting fewer products.');
     } finally {
       setGenerating(false);
+      setGenProgress(0);
     }
   };
 
@@ -242,13 +273,22 @@ export default function BarcodeLabelsPage({ onBack }: Props) {
           >
             {refreshing ? '…' : '↻ Refresh'}
           </button>
-          <button
-            className="bl-pdf-btn"
-            onClick={handleDownloadPDF}
-            disabled={selectedCount === 0 || generating}
-          >
-            {generating ? 'Generating…' : `⬇ Download PDF (${selectedCount})`}
-          </button>
+          <div className="bl-pdf-btn-wrap">
+            <button
+              className="bl-pdf-btn"
+              onClick={handleDownloadPDF}
+              disabled={selectedCount === 0 || generating}
+            >
+              {generating
+                ? `Building… ${genProgress}%`
+                : `⬇ PDF (${selectedCount})`}
+            </button>
+            {generating && (
+              <div className="bl-progress-bar">
+                <div className="bl-progress-fill" style={{ width: `${genProgress}%` }} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -283,7 +323,7 @@ export default function BarcodeLabelsPage({ onBack }: Props) {
       )}
 
       <div className="bl-footer">
-        <span>PDF: A4 portrait · 2 columns · 46 mm × ~96 mm · ~{Math.ceil(selectedCount / 12)} page(s)</span>
+        <span>PDF: A4 portrait · 4 columns · 34 mm × ~46 mm · ~{Math.ceil(selectedCount / 32)} page(s)</span>
         <span className="bl-footer-hint">New products appear automatically — hit ↻ Refresh if you just added one.</span>
       </div>
 
