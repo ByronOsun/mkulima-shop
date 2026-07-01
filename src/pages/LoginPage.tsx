@@ -140,28 +140,27 @@ export default function LoginPage() {
             >
               0
             </button>
-            <span className="keypad-spacer" aria-hidden="true" />
+            {isBiometricRegistered ? (
+              <button
+                type="button"
+                className="keypad-btn keypad-btn-secondary"
+                onClick={handleFingerprintLogin}
+                disabled={loading || biometricWorking}
+                aria-label="Login with fingerprint"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: '1.6rem', height: '1.6rem' }}>
+                  <path d="M12 1a9 9 0 0 1 9 9" />
+                  <path d="M3.6 9a9 9 0 0 1 1.5-4" />
+                  <path d="M12 5a5 5 0 0 1 5 5c0 4.5-2 7-5 9" />
+                  <path d="M7 10a5 5 0 0 1 3.3-4.7" />
+                  <path d="M12 9a1 1 0 0 1 1 1c0 2-.5 4.5-1 6" />
+                  <path d="M9 12.5c.2-1 .4-2 .4-2.5" />
+                </svg>
+              </button>
+            ) : (
+              <span className="keypad-spacer" aria-hidden="true" />
+            )}
           </div>
-
-          {isBiometricRegistered && (
-            <button
-              type="button"
-              className="fingerprint-btn"
-              onClick={handleFingerprintLogin}
-              disabled={loading || biometricWorking}
-              aria-label="Login with fingerprint"
-            >
-              <svg className="fingerprint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 1a9 9 0 0 1 9 9" />
-                <path d="M3.6 9a9 9 0 0 1 1.5-4" />
-                <path d="M12 5a5 5 0 0 1 5 5c0 4.5-2 7-5 9" />
-                <path d="M7 10a5 5 0 0 1 3.3-4.7" />
-                <path d="M12 9a1 1 0 0 1 1 1c0 2-.5 4.5-1 6" />
-                <path d="M9 12.5c.2-1 .4-2 .4-2.5" />
-              </svg>
-              Use Fingerprint
-            </button>
-          )}
         </form>
       </div>
     </div>
