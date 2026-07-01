@@ -205,6 +205,54 @@ export const authService = {
     throw new Error('Invalid PIN');
   },
 
+  async loginByUserId(userId: string): Promise<User> {
+    if (!supabase) {
+      throw new Error('Authentication service is not configured');
+    }
+
+    const { data, error } = await supabase
+      .from('staff_users')
+      .select('id, username, pin_hash, role, display_name, created_at, is_active, tenant_id')
+      .eq('id', userId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error('Account not found or has been deactivated');
+
+    const inferredRole = deriveRoleFromUsername(data.username);
+    const effectiveRole = (inferredRole ?? data.role) as User['role'];
+    const tenantId: string | null = data.tenant_id || null;
+
+    if (effectiveRole !== 'super_admin' && tenantId) {
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('is_active')
+        .eq('id', tenantId)
+        .single();
+      if (tenant && !tenant.is_active) {
+        throw new Error('This shop account has been suspended. Please contact support.');
+      }
+    }
+
+    const tenantConfig = tenantId ? await fetchTenantConfig(tenantId) : undefined;
+
+    const user: User = {
+      id: data.id,
+      username: data.username,
+      role: effectiveRole,
+      fullName: data.display_name,
+      created_at: data.created_at,
+      is_active: data.is_active,
+      tenant_id: tenantId || undefined,
+      tenantConfig,
+    };
+
+    setCurrentTenant(tenantId, effectiveRole);
+    saveCurrentUser(user);
+    return user;
+  },
+
   logout(): void {
     saveCurrentUser(null);
   },

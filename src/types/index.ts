@@ -156,6 +156,11 @@ export interface AuthContext {
   error: string | null;
   login: (username: string, pin: string) => Promise<void>;
   loginWithPin: (pin: string) => Promise<void>;
+  loginWithBiometric: () => Promise<void>;
+  registerBiometric: () => Promise<void>;
+  disableBiometric: () => void;
+  isBiometricAvailable: boolean;
+  isBiometricRegistered: boolean;
   logout: () => void;
   isAuthenticated: boolean;
 }

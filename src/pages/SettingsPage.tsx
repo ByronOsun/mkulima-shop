@@ -3,7 +3,7 @@ import { supabase, supabaseService } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/SettingsPage.css';
 
-type Tab = 'users' | 'categories' | 'contact' | 'manual' | 'about';
+type Tab = 'users' | 'categories' | 'contact' | 'security' | 'manual' | 'about';
 
 interface Props {
   onExit: () => void;
@@ -41,6 +41,7 @@ export default function SettingsPage({ onExit }: Props) {
     { key: 'users', icon: '👥', label: 'Users' },
     { key: 'categories', icon: '🏷️', label: 'Categories' },
     { key: 'contact', icon: '📞', label: 'Contact' },
+    { key: 'security', icon: '🔐', label: 'Security' },
     { key: 'manual', icon: '📖', label: 'Manual' },
     { key: 'about', icon: 'ℹ️', label: 'About' },
   ];
@@ -67,6 +68,7 @@ export default function SettingsPage({ onExit }: Props) {
         {activeTab === 'users' && <UsersTab tenantId={currentUser?.tenant_id} />}
         {activeTab === 'categories' && <CategoriesTab tenantId={currentUser?.tenant_id} />}
         {activeTab === 'contact' && <ContactTab />}
+        {activeTab === 'security' && <SecurityTab />}
         {activeTab === 'manual' && <ManualTab />}
         {activeTab === 'about' && <AboutTab />}
       </div>
@@ -1005,6 +1007,74 @@ function ManualTab() {
 }
 
 /* ─── About Tab ──────────────────────────────────────────────────── */
+
+function SecurityTab() {
+  const { isBiometricAvailable, isBiometricRegistered, registerBiometric, disableBiometric } = useAuth();
+  const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleEnable = async () => {
+    setBusy(true);
+    setStatus(null);
+    try {
+      await registerBiometric();
+      setStatus({ type: 'success', msg: 'Fingerprint login enabled on this device.' });
+    } catch (err) {
+      setStatus({ type: 'error', msg: err instanceof Error ? err.message : 'Setup failed.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDisable = () => {
+    disableBiometric();
+    setStatus({ type: 'success', msg: 'Fingerprint login disabled on this device.' });
+  };
+
+  return (
+    <div className="tab-security">
+      <h2>Security</h2>
+
+      <div className="security-section">
+        <h3>Fingerprint Login</h3>
+        <p className="security-desc">
+          Use your device fingerprint sensor to log in instead of typing your PIN.
+          This setting applies only to this device.
+        </p>
+
+        {!isBiometricAvailable && (
+          <div className="security-notice">
+            Fingerprint authentication is not available on this device or browser.
+            Try opening the app in Chrome on an Android phone.
+          </div>
+        )}
+
+        {isBiometricAvailable && (
+          <div className="security-toggle-row">
+            <span className="security-toggle-label">
+              {isBiometricRegistered ? 'Fingerprint login is ON' : 'Fingerprint login is OFF'}
+            </span>
+            {isBiometricRegistered ? (
+              <button className="btn-danger-outline" onClick={handleDisable} disabled={busy}>
+                Disable
+              </button>
+            ) : (
+              <button className="btn-primary" onClick={handleEnable} disabled={busy}>
+                {busy ? 'Setting up…' : 'Enable'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {status && (
+          <div className={status.type === 'success' ? 'settings-success' : 'settings-error'}>
+            {status.msg}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function AboutTab() {
   return (

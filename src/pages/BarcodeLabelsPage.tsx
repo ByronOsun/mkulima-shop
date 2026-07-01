@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Product } from '../types';
 import { supabaseService } from '../services/supabase';
-import { renderBarcodeToSVG, createBarcodeCanvas } from '../utils/barcodeGen';
+import { renderBarcodeToSVG, getBarcodePattern } from '../utils/barcodeGen';
 import { savePdf } from '../services/pdf';
 import '../styles/BarcodeLabelsPage.css';
 
@@ -65,7 +65,7 @@ function LabelCard({ product, selected, onToggle }: LabelCardProps) {
 // ── PDF generation ────────────────────────────────────────────────────
 // Yields to the event loop every CHUNK_SIZE labels so the Android WebView
 // watchdog doesn't kill the app during long generations.
-const CHUNK_SIZE = 8;
+const CHUNK_SIZE = 5;
 
 async function generateLabelsPDF(
   products: Product[],
@@ -94,7 +94,7 @@ async function generateLabelsPDF(
     // Yield every CHUNK_SIZE labels so the JS event loop stays responsive
     if (i > 0 && i % CHUNK_SIZE === 0) {
       onProgress(Math.round((i / products.length) * 90)); // 0–90% during render
-      await new Promise<void>(r => setTimeout(r, 0));
+      await new Promise<void>(r => setTimeout(r, 15));
     }
 
     const p = products[i];
@@ -113,26 +113,29 @@ async function generateLabelsPDF(
     doc.setLineWidth(0.2);
     doc.rect(x, y, LABEL_W, LABEL_H, 'FD');
 
-    // ── Barcode ───────────────────────────────────────────────────
+    // ── Barcode (vector — no PNG encoding, no image data in PDF) ─────
     const barcodeX = x + 2;
     const barcodeW = LABEL_W - 4;
     const barcodeY = y + 2;
     const barcodeH = 14;
 
-    let barcodeOk = false;
-    try {
-      const canvas = createBarcodeCanvas(p.sku, 60);
-      const dataUrl = canvas.toDataURL('image/png');
-      doc.addImage(dataUrl, 'PNG', barcodeX, barcodeY, barcodeW, barcodeH);
-      // Explicitly release canvas memory
-      canvas.width = 0;
-      canvas.height = 0;
-      barcodeOk = true;
-    } catch {
-      // Barcode error — draw a placeholder and keep going
-    }
-
-    if (!barcodeOk) {
+    const pattern = getBarcodePattern(p.sku);
+    if (pattern && pattern.length > 0) {
+      const moduleW = barcodeW / pattern.length;
+      doc.setFillColor(0, 0, 0);
+      // Merge consecutive black modules into single rects (cleaner + fewer ops)
+      let j = 0;
+      while (j < pattern.length) {
+        if (pattern[j]) {
+          let run = 1;
+          while (j + run < pattern.length && pattern[j + run]) run++;
+          doc.rect(barcodeX + j * moduleW, barcodeY, run * moduleW + 0.01, barcodeH, 'F');
+          j += run;
+        } else {
+          j++;
+        }
+      }
+    } else {
       doc.setFillColor(240, 240, 240);
       doc.rect(barcodeX, barcodeY, barcodeW, barcodeH, 'F');
       doc.setFontSize(5);

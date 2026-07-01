@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContext as IAuthContext } from '../types';
 import { authService } from '../services/auth';
+import { biometricAuth } from '../services/biometricAuth';
 
 const AuthContext = createContext<IAuthContext | undefined>(undefined);
 
@@ -8,8 +9,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
 
-  // Initialize auth state on mount
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -22,7 +24,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const checkBiometric = async () => {
+      const available = await biometricAuth.isAvailable();
+      setIsBiometricAvailable(available);
+      setIsBiometricRegistered(biometricAuth.isRegistered());
+    };
+
     initAuth();
+    checkBiometric();
   }, []);
 
   const login = async (username: string, pin: string) => {
@@ -55,6 +64,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginWithBiometric = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const userId = await biometricAuth.authenticate();
+      const currentUser = await authService.loginByUserId(userId);
+      setUser(currentUser);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Fingerprint authentication failed';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerBiometric = async () => {
+    if (!user) throw new Error('You must be logged in to set up fingerprint');
+    await biometricAuth.register(user.id, user.fullName || user.username);
+    setIsBiometricRegistered(true);
+  };
+
+  const disableBiometric = () => {
+    biometricAuth.clear();
+    setIsBiometricRegistered(false);
+  };
+
   const logout = () => {
     authService.logout();
     setUser(null);
@@ -67,6 +103,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error,
     login,
     loginWithPin,
+    loginWithBiometric,
+    registerBiometric,
+    disableBiometric,
+    isBiometricAvailable,
+    isBiometricRegistered,
     logout,
     isAuthenticated: user !== null,
   };
