@@ -46,6 +46,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Biometric / fingerprint login -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+
     <!-- Camera, for capturing product photos / scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />

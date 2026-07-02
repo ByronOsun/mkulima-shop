@@ -7,7 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath 'com.android.tools.build:gradle:8.3.2'
         classpath 'com.google.gms:google-services:4.4.0'
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -21,6 +21,16 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+}
+
+// Force all subprojects to compile with Java 17 (system JDK is 17, not 21)
+subprojects {
+    afterEvaluate {
+        if (it.hasProperty('android')) {
+            it.android.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+            it.android.compileOptions.targetCompatibility = JavaVersion.VERSION_17
+        }
     }
 }
 

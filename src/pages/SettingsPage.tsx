@@ -35,16 +35,19 @@ const CATEGORY_ORDER_KEY = 'vizia-category-order';
 
 export default function SettingsPage({ onExit }: Props) {
   const { user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('users');
+  const isAdmin = currentUser?.role === 'admin';
 
-  const tabs: { key: Tab; icon: string; label: string }[] = [
-    { key: 'users', icon: '👥', label: 'Users' },
-    { key: 'categories', icon: '🏷️', label: 'Categories' },
+  const allTabs: { key: Tab; icon: string; label: string; adminOnly?: boolean }[] = [
+    { key: 'users', icon: '👥', label: 'Users', adminOnly: true },
+    { key: 'categories', icon: '🏷️', label: 'Categories', adminOnly: true },
     { key: 'contact', icon: '📞', label: 'Contact' },
     { key: 'security', icon: '🔐', label: 'Security' },
     { key: 'manual', icon: '📖', label: 'Manual' },
     { key: 'about', icon: 'ℹ️', label: 'About' },
   ];
+
+  const tabs = allTabs.filter(t => isAdmin || !t.adminOnly);
+  const [activeTab, setActiveTab] = useState<Tab>(isAdmin ? 'users' : 'contact');
 
   return (
     <div className="settings-page">

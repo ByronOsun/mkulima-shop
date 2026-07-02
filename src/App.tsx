@@ -106,7 +106,7 @@ function AppContent() {
       case 'credit-sales':
         return <CreditSalesPage />;
       case 'settings':
-        return isAdmin ? <SettingsPage onExit={handleBackToPos} /> : null;
+        return (isAdmin || isCashier) ? <SettingsPage onExit={handleBackToPos} /> : null;
       case 'receipt':
         return <ReceiptPage receipt={receipt} onBackToPos={handleBackToPos} />;
       default:
@@ -217,6 +217,13 @@ function AppContent() {
               >
                 <span className="nav-icon">📑</span>
                 <span className="nav-label">Credit</span>
+              </button>
+              <button
+                className={`nav-btn ${currentPage === 'settings' ? 'active' : ''}`}
+                onClick={() => setCurrentPage('settings')}
+              >
+                <span className="nav-icon">⚙️</span>
+                <span className="nav-label">Settings</span>
               </button>
             </>
           )}
