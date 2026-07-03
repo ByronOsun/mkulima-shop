@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { CartItem, Product, ReceiptData } from '../types';
-import { useAuth } from '../contexts/AuthContext';
-import { completeSale, SalePaymentMethod } from '../services/checkout';
+import { CartItem, Product } from '../types';
 import BarcodeScannerModal from './BarcodeScannerModal';
 import '../styles/Cart.css';
 
@@ -9,8 +7,7 @@ interface CartProps {
   items: CartItem[];
   onRemoveItem: (productId: string) => void;
   onUpdateQuantity: (productId: string, quantity: number) => void;
-  onCheckoutSuccess: (receipt: ReceiptData) => void;
-  onCreditCheckout: () => void;
+  onProceedToCheckout: (items: CartItem[]) => void;
   products?: Product[];
   onAddToCart?: (product: Product, quantity: number) => void;
 }
@@ -19,17 +16,10 @@ export default function Cart({
   items,
   onRemoveItem,
   onUpdateQuantity,
-  onCheckoutSuccess,
-  onCreditCheckout,
+  onProceedToCheckout,
   products,
   onAddToCart,
 }: CartProps) {
-  const { user } = useAuth();
-  const [paymentMethod, setPaymentMethod] = useState<Exclude<SalePaymentMethod, 'credit'>>('cash');
-  const [processingPayment, setProcessingPayment] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [discountInput, setDiscountInput] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({});
 
@@ -38,57 +28,15 @@ export default function Cart({
     return !isNaN(v) && v >= 0 ? v : item.unit_price;
   };
 
-  const subtotal = items.reduce((sum, item) => sum + effectivePrice(item) * item.quantity, 0);
-
-  const discountAmount = Math.min(subtotal, Math.max(0, parseFloat(discountInput) || 0));
-
-  const total = Math.max(0, subtotal - discountAmount);
-
   const fmt = (n: number) =>
     new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(n);
 
-
-
-  const handlePaymentMethodChange = (value: string) => {
-    if (value === 'credit') {
-      onCreditCheckout();
-      return;
-    }
-    setPaymentMethod(value as Exclude<SalePaymentMethod, 'credit'>);
-  };
-
-  const handleCheckout = async () => {
-    if (items.length === 0) {
-      setError('Cart is empty');
-      return;
-    }
-
-    try {
-      setProcessingPayment(true);
-      setError(null);
-
-      const itemsToSell = items.map(item => {
-        const ep = effectivePrice(item);
-        return { ...item, unit_price: ep, subtotal: ep * item.quantity };
-      });
-
-      const receipt = await completeSale({
-        items: itemsToSell,
-        total,
-        discountAmount,
-        paymentMethod,
-        user,
-      });
-
-      setDiscountInput('');
-      setPriceOverrides({});
-      onCheckoutSuccess(receipt);
-      setSuccess(`Sale completed! Sale ID: ${receipt.saleId.substring(0, 8)}...`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Checkout failed');
-    } finally {
-      setProcessingPayment(false);
-    }
+  const handleCheckout = () => {
+    const itemsWithPrices = items.map(item => {
+      const ep = effectivePrice(item);
+      return { ...item, unit_price: ep, subtotal: ep * item.quantity };
+    });
+    onProceedToCheckout(itemsWithPrices);
   };
 
   return (
@@ -122,43 +70,40 @@ export default function Cart({
         ) : (
           items.map(item => (
             <div key={item.productId} className="cart-item">
-              <div className="item-details">
-                <strong>{item.product.name}</strong>
-              </div>
-              <div className="item-controls">
-                <button
-                  className="qty-btn"
-                  onClick={() => onUpdateQuantity(item.productId, Math.max(1, item.quantity - 1))}
-                  title="Decrease quantity"
-                >
-                  −
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={e =>
-                    onUpdateQuantity(
-                      item.productId,
-                      parseInt(e.target.value) || 0
-                    )
-                  }
-                  className="qty-input"
-                />
-                <button
-                  className="qty-btn"
-                  onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
-                  title="Increase quantity"
-                >
-                  +
-                </button>
-                <button
-                  className="remove-btn"
-                  onClick={() => onRemoveItem(item.productId)}
-                  title="Remove item"
-                >
-                  ✕
-                </button>
+              <div className="item-top-row">
+                <div className="item-details">
+                  <strong>{item.product.name}</strong>
+                </div>
+                <div className="item-controls">
+                  <button
+                    className="qty-btn"
+                    onClick={() => onUpdateQuantity(item.productId, Math.max(1, item.quantity - 1))}
+                    title="Decrease quantity"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={e => onUpdateQuantity(item.productId, parseInt(e.target.value) || 0)}
+                    className="qty-input"
+                  />
+                  <button
+                    className="qty-btn"
+                    onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
+                    title="Increase quantity"
+                  >
+                    +
+                  </button>
+                  <button
+                    className="remove-btn"
+                    onClick={() => onRemoveItem(item.productId)}
+                    title="Remove item"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
               <div className="item-pricing">
                 <div className="price-row">
@@ -170,7 +115,6 @@ export default function Cart({
                     className="price-override-input"
                     value={priceOverrides[item.productId] ?? item.unit_price}
                     onChange={e => setPriceOverrides(prev => ({ ...prev, [item.productId]: e.target.value }))}
-                    disabled={processingPayment}
                   />
                   <span>×</span>
                   <span>{item.quantity}</span>
@@ -183,61 +127,9 @@ export default function Cart({
       </div>
 
       {items.length > 0 && (
-        <>
-          <div className="cart-summary">
-            <div className="summary-row">
-              <span>Subtotal:</span>
-              <span>{fmt(subtotal)}</span>
-            </div>
-
-            <div className="discount-controls">
-              <input
-                type="number"
-                min="0"
-                className="discount-input"
-                placeholder="Discount"
-                value={discountInput}
-                onChange={e => setDiscountInput(e.target.value)}
-                disabled={processingPayment}
-              />
-              <span className="disc-ksh-label">Ksh</span>
-              {discountAmount > 0 && (
-                <span className="discount-saved">−{fmt(discountAmount)}</span>
-              )}
-            </div>
-
-            <div className="summary-row total">
-              <span>Total:</span>
-              <span className="total-amount">{fmt(total)}</span>
-            </div>
-          </div>
-
-          <div className="payment-section">
-            <label>Payment Method:</label>
-            <select
-              value={paymentMethod}
-              onChange={e => handlePaymentMethodChange(e.target.value)}
-              className="payment-select"
-              disabled={processingPayment}
-            >
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="mobile_money">Mobile Money</option>
-              <option value="credit">Credit</option>
-            </select>
-          </div>
-
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
-
-          <button
-            className="checkout-btn"
-            onClick={handleCheckout}
-            disabled={processingPayment || items.length === 0}
-          >
-            {processingPayment ? 'Processing...' : 'Complete Sale'}
-          </button>
-        </>
+        <button className="checkout-btn" onClick={handleCheckout}>
+          Checkout →
+        </button>
       )}
     </div>
   );

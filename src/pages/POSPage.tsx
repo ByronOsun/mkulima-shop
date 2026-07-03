@@ -4,6 +4,7 @@ import { supabaseService } from '../services/supabase';
 import ProductList from '../components/ProductList';
 import Cart from '../components/Cart';
 import CreditCheckout from '../components/CreditCheckout';
+import CheckoutPage from './CheckoutPage';
 import { playBeep } from '../utils/beep';
 import '../styles/POSPage.css';
 
@@ -20,6 +21,8 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showCreditCheckout, setShowCreditCheckout] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
     loadProducts();
@@ -128,8 +131,16 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     }
   };
 
+  const handleProceedToCheckout = (items: CartItem[]) => {
+    setCheckoutItems(items);
+    setShowCheckout(true);
+    setShowMobileCart(false);
+  };
+
   const handleCheckoutSuccess = (receipt: ReceiptData) => {
     setCart([]);
+    setCheckoutItems([]);
+    setShowCheckout(false);
     setShowMobileCart(false);
     setShowCreditCheckout(false);
     supabaseService.getProducts().then(setProducts).catch(() => {});
@@ -173,9 +184,22 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
     return (
       <div className="pos-page pos-credit-checkout-view">
         <CreditCheckout
-          items={cart}
+          items={checkoutItems.length > 0 ? checkoutItems : cart}
           onBack={() => setShowCreditCheckout(false)}
           onCheckoutSuccess={handleCheckoutSuccess}
+        />
+      </div>
+    );
+  }
+
+  if (showCheckout) {
+    return (
+      <div className="pos-page">
+        <CheckoutPage
+          items={checkoutItems}
+          onBack={() => setShowCheckout(false)}
+          onCheckoutSuccess={handleCheckoutSuccess}
+          onCreditCheckout={() => setShowCreditCheckout(true)}
         />
       </div>
     );
@@ -202,8 +226,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
             items={cart}
             onRemoveItem={removeFromCart}
             onUpdateQuantity={updateCartItem}
-            onCheckoutSuccess={handleCheckoutSuccess}
-            onCreditCheckout={() => setShowCreditCheckout(true)}
+            onProceedToCheckout={handleProceedToCheckout}
             products={products}
             onAddToCart={addToCart}
           />
@@ -248,8 +271,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
             items={cart}
             onRemoveItem={removeFromCart}
             onUpdateQuantity={updateCartItem}
-            onCheckoutSuccess={handleCheckoutSuccess}
-            onCreditCheckout={() => setShowCreditCheckout(true)}
+            onProceedToCheckout={handleProceedToCheckout}
             products={products}
             onAddToCart={addToCart}
           />

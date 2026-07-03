@@ -110,30 +110,6 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
             <BarcodeIcon /> Barcode Labels
           </button>
         </div>
-        <div className="inventory-stats">
-          <div className="stat-card">
-            <span className="stat-label">Total Products</span>
-            <span className="stat-value">{products.length}</span>
-          </div>
-          <div className="stat-card alert">
-            <span className="stat-label">Low Stock Items</span>
-            <span className="stat-value">{lowStockProducts.length}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Total Stock Value</span>
-            <span className="stat-value">
-              {new Intl.NumberFormat('en-KE', {
-                style: 'currency',
-                currency: 'KES',
-              }).format(
-                products.reduce(
-                  (sum, p) => sum + p.quantity_in_stock * p.unit_price,
-                  0
-                )
-              )}
-            </span>
-          </div>
-        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -154,12 +130,8 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
             <tr>
               <th className="sku-col">SKU</th>
               <th>Product Name</th>
-              <th>Category</th>
               <th>Unit Price</th>
               <th>In Stock</th>
-              <th>Reorder Level</th>
-              <th>Stock Value</th>
-              <th>Status</th>
               <th className="actions-col">Actions</th>
             </tr>
           </thead>
@@ -175,7 +147,6 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
                     <p className="description">{product.description}</p>
                   )}
                 </td>
-                <td>{product.category}</td>
                 <td>
                   {new Intl.NumberFormat('en-KE', {
                     style: 'currency',
@@ -183,38 +154,20 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
                   }).format(product.unit_price)}
                 </td>
                 <td className="quantity">{product.quantity_in_stock}</td>
-                <td>{product.reorder_level}</td>
-                <td>
-                  {new Intl.NumberFormat('en-KE', {
-                    style: 'currency',
-                    currency: 'KES',
-                  }).format(product.quantity_in_stock * product.unit_price)}
-                </td>
-                <td>
-                  <span className={`status-badge ${
-                    product.quantity_in_stock > product.reorder_level
-                      ? 'in-stock'
-                      : 'low-stock'
-                  }`}>
-                    {product.quantity_in_stock > product.reorder_level
-                      ? '✓ In Stock'
-                      : '⚠ Low Stock'}
-                  </span>
-                </td>
                 <td className="actions-cell">
                   <button
                     className="btn-edit"
                     onClick={() => setEditingProduct(product)}
-                    title="Edit product"
+                    title="Edit"
                   >
-                    ✏️ Edit
+                    ✏️
                   </button>
                   <button
                     className="btn-delete"
                     onClick={() => handleDeleteProduct(product.id)}
-                    title="Delete product"
+                    title="Delete"
                   >
-                    🗑️ Delete
+                    🗑️
                   </button>
                 </td>
               </tr>

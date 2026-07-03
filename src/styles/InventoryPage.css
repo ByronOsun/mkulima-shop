@@ -142,7 +142,20 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
+  table-layout: fixed;
 }
+
+.inventory-table th:nth-child(1),
+.inventory-table td:nth-child(1) { width: 45%; }
+
+.inventory-table th:nth-child(2),
+.inventory-table td:nth-child(2) { width: 25%; }
+
+.inventory-table th:nth-child(3),
+.inventory-table td:nth-child(3) { width: 15%; }
+
+.inventory-table th:nth-child(4),
+.inventory-table td:nth-child(4) { width: 15%; }
 
 .inventory-table thead {
   background: var(--dark);
@@ -152,14 +165,14 @@
 }
 
 .inventory-table th {
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   text-align: left;
   font-weight: 600;
   border-bottom: 2px solid var(--primary);
 }
 
 .inventory-table td {
-  padding: 1rem;
+  padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--light);
 }
 
@@ -234,32 +247,32 @@
 }
 
 /* Actions Column */
-.actions-col {
+.inventory-table th.actions-col {
   text-align: center;
-  width: 160px;
 }
 
 .actions-cell {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: row;
+  gap: 0.4rem;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .btn-edit,
 .btn-delete {
-  padding: 0.5rem 1rem;
+  padding: 0.35rem 0.55rem;
   border: none;
   border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .btn-edit {
@@ -295,16 +308,15 @@
   }
 
   .actions-cell {
-    flex-direction: column;
+    flex-direction: row !important;
     gap: 0.25rem;
+    flex-wrap: nowrap !important;
   }
 
   .btn-edit,
   .btn-delete {
-    width: 100%;
-    justify-content: center;
-    padding: 0.4rem 0.75rem;
-    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.78rem;
   }
 
   .inventory-stats {
@@ -325,13 +337,6 @@
   }
 }
 
-@media (max-width: 640px) {
-  .btn-edit,
-  .btn-delete {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.75rem;
-  }
-}
 
 /* Hide SKU column from the inventory table */
 .sku-col {

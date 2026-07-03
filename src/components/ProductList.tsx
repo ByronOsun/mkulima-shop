@@ -67,7 +67,6 @@ export default function ProductList({ groupedCategories, onAddToCart }: ProductL
             >
               <div className="category-title-wrap">
                 <h3 className="category-title">{group.category}</h3>
-                <span className="category-count">{group.products.length} products</span>
               </div>
             </div>
 
@@ -86,22 +85,21 @@ export default function ProductList({ groupedCategories, onAddToCart }: ProductL
                   )}
                   <div className="product-info">
                     <h3 className="product-name">{product.name}</h3>
-                    <p className="product-sku">SKU: {product.sku}</p>
                     {product.description && (
                       <p className="product-description">{product.description}</p>
                     )}
                   </div>
                   <div className="product-details">
+                    <span className={`stock-badge ${
+                      product.quantity_in_stock > 5 ? 'in-stock' : 'low-stock'
+                    }`}>
+                      {product.quantity_in_stock} in stock
+                    </span>
                     <span className="product-price">
                       {new Intl.NumberFormat('en-KE', {
                         style: 'currency',
                         currency: 'KES',
                       }).format(product.unit_price)}
-                    </span>
-                    <span className={`stock-badge ${
-                      product.quantity_in_stock > 5 ? 'in-stock' : 'low-stock'
-                    }`}>
-                      {product.quantity_in_stock} in stock
                     </span>
                   </div>
                   <div className="product-action">
