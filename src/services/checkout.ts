@@ -22,6 +22,51 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
     amountPaid = 0, initialPaymentMethod,
   } = params;
 
+  const cashierName = user?.fullName || user?.username || 'Unknown User';
+  const cashierRole = user?.role ?? 'cashier';
+
+  // For credit sales, merge into the customer's existing pending balance
+  if (paymentMethod === 'credit' && customerName?.trim()) {
+    const existing = await supabaseService.findPendingCreditSale(customerName.trim());
+    if (existing) {
+      await supabaseService.mergeCreditSale(existing.id, total, amountPaid);
+
+      const saleItems = items.map(item => ({
+        sale_id: existing.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        subtotal: item.subtotal,
+      }));
+      await supabaseService.createSaleItems(saleItems);
+
+      for (const item of items) {
+        const newStock = item.product.quantity_in_stock - item.quantity;
+        await supabaseService.updateProductStock(item.productId, Math.max(0, newStock));
+      }
+
+      return {
+        saleId: existing.id,
+        receiptNumber: existing.id.substring(0, 8).toUpperCase(),
+        saleDate: new Date().toISOString(),
+        paymentMethod,
+        totalAmount: existing.total_amount + total,
+        discountAmount: discountAmount > 0 ? discountAmount : undefined,
+        cashierRole,
+        cashierName,
+        tenantConfig: user?.tenantConfig,
+        items: items.map(item => ({
+          productId: item.productId,
+          name: item.product.name,
+          sku: item.product.sku,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          subtotal: item.subtotal,
+        })),
+      };
+    }
+  }
+
   const status: 'completed' | 'pending' =
     paymentMethod === 'credit' && amountPaid < total ? 'pending' : 'completed';
 
@@ -34,8 +79,8 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
     customer_contact: paymentMethod === 'credit' ? customerContact || undefined : undefined,
     amount_paid: amountPaid || undefined,
     payment_channel: paymentMethod === 'credit' && amountPaid > 0 ? initialPaymentMethod : undefined,
-    cashier_name: user?.fullName || user?.username || 'Unknown User',
-    cashier_role: user?.role ?? 'cashier',
+    cashier_name: cashierName,
+    cashier_role: cashierRole,
   } as any);
 
   const saleItems = items.map(item => ({
@@ -60,8 +105,8 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
     paymentMethod,
     totalAmount: total,
     discountAmount: discountAmount > 0 ? discountAmount : undefined,
-    cashierRole: user?.role ?? 'cashier',
-    cashierName: user?.fullName || user?.username || 'Unknown User',
+    cashierRole,
+    cashierName,
     tenantConfig: user?.tenantConfig,
     items: items.map(item => ({
       productId: item.productId,

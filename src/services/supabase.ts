@@ -1039,6 +1039,73 @@ export const supabaseService = {
     return clone(sale);
   },
 
+  async findPendingCreditSale(customerName: string): Promise<Sale | null> {
+    const normalizedName = customerName.trim().toLowerCase();
+    if (supabase) {
+      try {
+        const { data, error } = await applyTenantFilter(
+          supabase
+            .from('sales')
+            .select('*')
+            .eq('payment_method', 'credit')
+            .eq('status', 'pending')
+            .order('sale_date', { ascending: false })
+        );
+        if (!error && data) {
+          const match = (data as Sale[]).find(
+            s => s.customer_name?.trim().toLowerCase() === normalizedName
+          );
+          return match || null;
+        }
+      } catch {
+        return null;
+      }
+    }
+    const state = loadDemoState();
+    const match = state.sales.find(
+      s => s.payment_method === 'credit' &&
+           s.status === 'pending' &&
+           s.customer_name?.trim().toLowerCase() === normalizedName
+    );
+    return match ? clone(match) : null;
+  },
+
+  async mergeCreditSale(saleId: string, addedTotal: number, addedAmountPaid: number): Promise<Sale> {
+    if (supabase) {
+      try {
+        const { data: current, error: fetchErr } = await supabase
+          .from('sales')
+          .select('*')
+          .eq('id', saleId)
+          .single();
+        if (!fetchErr && current) {
+          const sale = current as Sale;
+          const newTotal = sale.total_amount + addedTotal;
+          const newPaid = (sale.amount_paid || 0) + addedAmountPaid;
+          const newStatus = newPaid >= newTotal ? 'completed' : 'pending';
+          const { data, error } = await supabase
+            .from('sales')
+            .update({ total_amount: newTotal, amount_paid: newPaid, status: newStatus, updated_at: new Date().toISOString() })
+            .eq('id', saleId)
+            .select()
+            .single();
+          if (!error && data) return data as Sale;
+        }
+      } catch (error) {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
+    }
+    const state = loadDemoState();
+    const sale = state.sales.find(s => s.id === saleId);
+    if (!sale) throw new Error('Sale not found');
+    sale.total_amount += addedTotal;
+    sale.amount_paid = (sale.amount_paid || 0) + addedAmountPaid;
+    sale.status = sale.amount_paid >= sale.total_amount ? 'completed' : 'pending';
+    sale.updated_at = new Date().toISOString();
+    saveDemoState();
+    return clone(sale);
+  },
+
   async deleteCreditSale(saleId: string): Promise<void> {
     if (supabase) {
       try {
