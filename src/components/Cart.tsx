@@ -31,8 +31,14 @@ export default function Cart({
   const [success, setSuccess] = useState<string | null>(null);
   const [discountInput, setDiscountInput] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [priceOverrides, setPriceOverrides] = useState<Record<string, string>>({});
 
-  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const effectivePrice = (item: CartItem) => {
+    const v = parseFloat(priceOverrides[item.productId]);
+    return !isNaN(v) && v >= 0 ? v : item.unit_price;
+  };
+
+  const subtotal = items.reduce((sum, item) => sum + effectivePrice(item) * item.quantity, 0);
 
   const discountAmount = Math.min(subtotal, Math.max(0, parseFloat(discountInput) || 0));
 
@@ -61,8 +67,13 @@ export default function Cart({
       setProcessingPayment(true);
       setError(null);
 
+      const itemsToSell = items.map(item => {
+        const ep = effectivePrice(item);
+        return { ...item, unit_price: ep, subtotal: ep * item.quantity };
+      });
+
       const receipt = await completeSale({
-        items,
+        items: itemsToSell,
         total,
         discountAmount,
         paymentMethod,
@@ -70,6 +81,7 @@ export default function Cart({
       });
 
       setDiscountInput('');
+      setPriceOverrides({});
       onCheckoutSuccess(receipt);
       setSuccess(`Sale completed! Sale ID: ${receipt.saleId.substring(0, 8)}...`);
     } catch (err) {
@@ -112,7 +124,6 @@ export default function Cart({
             <div key={item.productId} className="cart-item">
               <div className="item-details">
                 <strong>{item.product.name}</strong>
-                <p className="item-sku">{item.product.sku}</p>
               </div>
               <div className="item-controls">
                 <button
@@ -151,11 +162,20 @@ export default function Cart({
               </div>
               <div className="item-pricing">
                 <div className="price-row">
-                  <span>{fmt(item.unit_price)}</span>
+                  <span className="price-ksh-prefix">Ksh</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="price-override-input"
+                    value={priceOverrides[item.productId] ?? item.unit_price}
+                    onChange={e => setPriceOverrides(prev => ({ ...prev, [item.productId]: e.target.value }))}
+                    disabled={processingPayment}
+                  />
                   <span>×</span>
                   <span>{item.quantity}</span>
                 </div>
-                <div className="subtotal">{fmt(item.subtotal)}</div>
+                <div className="subtotal">{fmt(effectivePrice(item) * item.quantity)}</div>
               </div>
             </div>
           ))
@@ -170,23 +190,20 @@ export default function Cart({
               <span>{fmt(subtotal)}</span>
             </div>
 
-            <div className="discount-row">
-              <span className="discount-label">Discount</span>
-              {discountAmount > 0 && (
-                <span className="discount-saved">−{fmt(discountAmount)}</span>
-              )}
-            </div>
             <div className="discount-controls">
               <input
                 type="number"
                 min="0"
                 className="discount-input"
-                placeholder="0"
+                placeholder="Discount"
                 value={discountInput}
                 onChange={e => setDiscountInput(e.target.value)}
                 disabled={processingPayment}
               />
               <span className="disc-ksh-label">Ksh</span>
+              {discountAmount > 0 && (
+                <span className="discount-saved">−{fmt(discountAmount)}</span>
+              )}
             </div>
 
             <div className="summary-row total">
