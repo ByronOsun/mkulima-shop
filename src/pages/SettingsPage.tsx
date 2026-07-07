@@ -1,9 +1,10 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { supabase, supabaseService } from '../services/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { mpesaService, MpesaCredentials, MpesaCredentialStatus } from '../services/mpesa';
 import '../styles/SettingsPage.css';
 
-type Tab = 'users' | 'categories' | 'contact' | 'security' | 'manual' | 'about';
+type Tab = 'users' | 'categories' | 'mpesa' | 'contact' | 'security' | 'manual' | 'about';
 
 interface Props {
   onExit: () => void;
@@ -40,6 +41,7 @@ export default function SettingsPage({ onExit }: Props) {
   const allTabs: { key: Tab; icon: string; label: string; adminOnly?: boolean }[] = [
     { key: 'users', icon: '👥', label: 'Users', adminOnly: true },
     { key: 'categories', icon: '🏷️', label: 'Categories', adminOnly: true },
+    { key: 'mpesa', icon: '📱', label: 'M-Pesa', adminOnly: true },
     { key: 'contact', icon: '📞', label: 'Contact' },
     { key: 'security', icon: '🔐', label: 'Security' },
     { key: 'manual', icon: '📖', label: 'Manual' },
@@ -70,6 +72,7 @@ export default function SettingsPage({ onExit }: Props) {
       <div className="settings-content">
         {activeTab === 'users' && <UsersTab tenantId={currentUser?.tenant_id} />}
         {activeTab === 'categories' && <CategoriesTab tenantId={currentUser?.tenant_id} />}
+        {activeTab === 'mpesa' && <MpesaTab tenantId={currentUser?.tenant_id} actorId={currentUser?.id} />}
         {activeTab === 'contact' && <ContactTab />}
         {activeTab === 'security' && <SecurityTab />}
         {activeTab === 'manual' && <ManualTab />}
@@ -1151,6 +1154,255 @@ function AboutTab() {
         <p><strong>Developed by:</strong> VIZIA Technologies</p>
         <p><strong>Contact:</strong> htechnob@gmail.com · 0724-121-679</p>
       </div>
+    </div>
+  );
+}
+
+/* ─── M-Pesa Tab ─────────────────────────────────────────────────── */
+
+function MpesaTab({ tenantId, actorId }: { tenantId?: string; actorId?: string }) {
+  const [status, setStatus] = useState<MpesaCredentialStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const [form, setForm] = useState<MpesaCredentials>({
+    shortcode: '',
+    shortcode_type: 'till',
+    consumer_key: '',
+    consumer_secret: '',
+    passkey: '',
+    environment: 'production',
+    account_number: '',
+  });
+
+  const loadStatus = async () => {
+    if (!tenantId) { setLoading(false); return; }
+    try {
+      setLoading(true);
+      const s = await mpesaService.getCredentialStatus(tenantId);
+      setStatus(s);
+      if (!s.configured) setShowForm(true);
+    } catch {
+      // Edge functions not yet deployed or network issue — fall back to the form
+      setShowForm(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadStatus(); }, [tenantId]);
+
+  const handleSave = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!tenantId) return;
+    setError(null);
+    setSuccess(null);
+
+    if (!form.shortcode || !form.consumer_key || !form.consumer_secret || !form.passkey) {
+      setError('All fields are required.');
+      return;
+    }
+
+    if (form.shortcode_type === 'paybill' && !form.account_number?.trim()) {
+      setError('Account Number is required for Paybill shortcodes.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const result = await mpesaService.saveCredentials(tenantId, form, actorId);
+      if (!result.success) throw new Error(result.error);
+      setSuccess('M-Pesa credentials saved and encrypted successfully.');
+      setShowForm(false);
+      await loadStatus();
+      // Clear sensitive form data from memory
+      setForm({ shortcode: '', shortcode_type: 'till', consumer_key: '', consumer_secret: '', passkey: '', environment: 'production', account_number: '' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save credentials.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!tenantId || !confirm('Remove M-Pesa credentials? Customers will not be able to pay via M-Pesa until you re-add them.')) return;
+    setError(null);
+    setDeleting(true);
+    try {
+      const result = await mpesaService.deleteCredentials(tenantId, actorId);
+      if (!result.success) throw new Error(result.error);
+      setSuccess('M-Pesa credentials removed.');
+      setStatus(null);
+      setShowForm(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove credentials.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (!tenantId) {
+    return <div className="settings-error">No tenant associated with your account.</div>;
+  }
+
+  if (loading) return <div className="settings-loading">Loading M-Pesa configuration…</div>;
+
+  return (
+    <div className="tab-mpesa">
+      <div className="tab-header">
+        <h2>M-Pesa Integration</h2>
+      </div>
+
+      <div className="mpesa-settings-info">
+        <p>
+          Connect your own <strong>Safaricom Daraja</strong> account so customers can pay directly into your M-Pesa business account.
+          Your credentials are <strong>encrypted at rest</strong> and never exposed to the frontend.
+        </p>
+        <p className="mpesa-settings-note">
+          You need: Business Shortcode (Till or Paybill number), Consumer Key, Consumer Secret, and Passkey from the{' '}
+          <strong>Daraja Developer Portal</strong>.
+        </p>
+      </div>
+
+      {error && <div className="settings-error">{error}</div>}
+      {success && <div className="settings-success">{success}</div>}
+
+      {/* Current status */}
+      {status?.configured && !showForm && (
+        <div className="mpesa-status-card mpesa-status-active">
+          <div className="mpesa-status-icon">✓</div>
+          <div className="mpesa-status-info">
+            <strong>M-Pesa Connected</strong>
+            <span>Shortcode: <code>{status.shortcode}</code></span>
+            <span>Type: {status.shortcode_type === 'till' ? 'Buy Goods (Till)' : 'Pay Bill'}</span>
+            {status.shortcode_type === 'paybill' && status.account_number && (
+              <span>Account No: <code>{status.account_number}</code></span>
+            )}
+            <span>Environment: {status.environment}</span>
+            {status.updated_at && (
+              <span>Last updated: {new Date(status.updated_at).toLocaleDateString()}</span>
+            )}
+          </div>
+          <div className="mpesa-status-actions">
+            <button className="btn-primary" onClick={() => { setShowForm(true); setSuccess(null); }}>
+              Update Credentials
+            </button>
+            <button className="btn-danger" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Removing…' : 'Disconnect'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Credential form */}
+      {showForm && (
+        <form className="mpesa-creds-form" onSubmit={handleSave}>
+          <div className="form-row">
+            <label>Business Shortcode *</label>
+            <input
+              type="text"
+              placeholder="e.g. 174379 or 123456"
+              value={form.shortcode}
+              onChange={e => setForm(f => ({ ...f, shortcode: e.target.value }))}
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Shortcode Type *</label>
+            <select
+              value={form.shortcode_type}
+              onChange={e => setForm(f => ({ ...f, shortcode_type: e.target.value as 'till' | 'paybill', account_number: '' }))}
+            >
+              <option value="till">Buy Goods (Till Number)</option>
+              <option value="paybill">Pay Bill (Paybill Number)</option>
+            </select>
+          </div>
+
+          {form.shortcode_type === 'paybill' && (
+            <div className="form-row">
+              <label>Account Number *</label>
+              <input
+                type="text"
+                placeholder="e.g. 0012345 or STORE01"
+                value={form.account_number ?? ''}
+                onChange={e => setForm(f => ({ ...f, account_number: e.target.value }))}
+                maxLength={12}
+                required
+              />
+              <span className="form-hint">
+                Shown on the customer's phone. Routes the payment to your sub-account. Max 12 characters.
+              </span>
+            </div>
+          )}
+
+          <div className="form-row">
+            <label>Consumer Key *</label>
+            <input
+              type="password"
+              placeholder="From Daraja Developer Portal"
+              value={form.consumer_key}
+              onChange={e => setForm(f => ({ ...f, consumer_key: e.target.value }))}
+              autoComplete="off"
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Consumer Secret *</label>
+            <input
+              type="password"
+              placeholder="From Daraja Developer Portal"
+              value={form.consumer_secret}
+              onChange={e => setForm(f => ({ ...f, consumer_secret: e.target.value }))}
+              autoComplete="off"
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Passkey *</label>
+            <input
+              type="password"
+              placeholder="STK Push Passkey from Daraja"
+              value={form.passkey}
+              onChange={e => setForm(f => ({ ...f, passkey: e.target.value }))}
+              autoComplete="off"
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Environment *</label>
+            <select
+              value={form.environment}
+              onChange={e => setForm(f => ({ ...f, environment: e.target.value as 'sandbox' | 'production' }))}
+            >
+              <option value="production">Production (Live)</option>
+              <option value="sandbox">Sandbox (Testing)</option>
+            </select>
+          </div>
+
+          <div className="mpesa-form-actions">
+            {status?.configured && (
+              <button type="button" className="btn-ghost-settings" onClick={() => { setShowForm(false); setError(null); }}>
+                Cancel
+              </button>
+            )}
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? 'Encrypting & Saving…' : 'Save M-Pesa Credentials'}
+            </button>
+          </div>
+
+          <p className="mpesa-security-note">
+            🔒 Credentials are encrypted with AES-256-GCM before being stored. They are decrypted only server-side during payment requests and never sent to the browser.
+          </p>
+        </form>
+      )}
     </div>
   );
 }

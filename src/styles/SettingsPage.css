@@ -1063,3 +1063,195 @@
   font-size: 0.875rem;
   margin-top: 0.75rem;
 }
+
+/* ─── M-Pesa Tab ──────────────────────────────────────────────────────────── */
+
+.tab-mpesa {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mpesa-settings-info {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #166534;
+  line-height: 1.55;
+}
+
+.mpesa-settings-note {
+  font-size: 13px;
+  color: #4b7a5c;
+  margin: 0;
+}
+
+.settings-success {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mpesa-status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: #fff;
+  border: 1.5px solid #86efac;
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+
+.mpesa-status-active {
+  border-color: #00a651;
+}
+
+.mpesa-status-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #00a651;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mpesa-status-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  color: #333;
+}
+
+.mpesa-status-info strong {
+  font-size: 15px;
+  color: #00a651;
+}
+
+.mpesa-status-info code {
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.mpesa-status-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-danger {
+  padding: 8px 14px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-ghost-settings {
+  padding: 10px 16px;
+  background: transparent;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background 0.15s;
+}
+
+.btn-ghost-settings:hover {
+  background: #f9fafb;
+}
+
+.mpesa-creds-form {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mpesa-creds-form .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mpesa-creds-form .form-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.mpesa-creds-form .form-row input,
+.mpesa-creds-form .form-row select {
+  padding: 10px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+  background: #fff;
+}
+
+.mpesa-creds-form .form-row input:focus,
+.mpesa-creds-form .form-row select:focus {
+  border-color: #00a651;
+  box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.12);
+}
+
+.mpesa-form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.mpesa-security-note {
+  font-size: 12px;
+  color: #6b7280;
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.form-hint {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.4;
+}

@@ -172,3 +172,42 @@ export interface DailySalesReport {
   paymentBreakdown: Record<string, number>;
   topProducts: Array<{ name: string; quantity: number; total: number }>;
 }
+
+// ── M-Pesa / Daraja types ─────────────────────────────────────────────────────
+
+export type MpesaShortcodeType = 'paybill' | 'till';
+export type MpesaEnvironment = 'sandbox' | 'production';
+export type MpesaTxStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'timeout';
+
+export interface TenantMpesaCredentialStatus {
+  configured: boolean;
+  shortcode?: string;
+  shortcode_type?: MpesaShortcodeType;
+  environment?: MpesaEnvironment;
+  is_active?: boolean;
+  updated_at?: string;
+}
+
+export interface MpesaTransactionRecord {
+  id: string;
+  tenant_id: string;
+  sale_id: string | null;
+  checkout_request_id: string | null;
+  merchant_request_id: string | null;
+  phone_number: string;
+  amount: number;
+  status: MpesaTxStatus;
+  mpesa_receipt_number: string | null;
+  result_code: number | null;
+  result_description: string | null;
+  initiated_at: string;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

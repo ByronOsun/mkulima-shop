@@ -13,6 +13,9 @@ export interface CompleteSaleParams {
   customerContact?: string;
   amountPaid?: number;
   initialPaymentMethod?: 'cash' | 'mobile_money';
+  /** Override the initial sale status. Defaults to 'completed' for cash/card,
+   *  'pending' for mobile_money (awaiting M-Pesa callback) and credit. */
+  initialStatus?: 'completed' | 'pending';
 }
 
 export async function completeSale(params: CompleteSaleParams): Promise<ReceiptData> {
@@ -20,6 +23,7 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
     items, total, discountAmount = 0, paymentMethod, user,
     customerName, customerContact,
     amountPaid = 0, initialPaymentMethod,
+    initialStatus,
   } = params;
 
   const cashierName = user?.fullName || user?.username || 'Unknown User';
@@ -68,7 +72,8 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
   }
 
   const status: 'completed' | 'pending' =
-    paymentMethod === 'credit' && amountPaid < total ? 'pending' : 'completed';
+    initialStatus ??
+    (paymentMethod === 'credit' && amountPaid < total ? 'pending' : 'completed');
 
   const sale = await supabaseService.createSale({
     sale_date: new Date().toISOString(),
