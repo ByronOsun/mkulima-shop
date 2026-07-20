@@ -1,10 +1,11 @@
-/* Thermal Receipt Printer Styles */
+/* Receipt Styles */
 
 :root {
-  --receipt-width: 58mm;
   --receipt-bg: #ffffff;
-  --receipt-text: #000000;
-  --receipt-font: 'Courier New', Courier, monospace;
+  --receipt-text: #1a1a1a;
+  --receipt-muted: #6b7280;
+  --receipt-border: #e0e0e0;
+  --receipt-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
 }
 
 .receipt-page {
@@ -19,67 +20,190 @@
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 }
 
-.receipt-thermal-wrapper {
-  /* Simulates 58mm thermal printer width */
-  width: 320px;
+.receipt-card {
+  width: 380px;
+  max-width: 100%;
   background: var(--receipt-bg);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  padding: 1rem 0;
-  overflow: hidden;
-}
-
-.receipt-thermal {
-  /* Monospaced font for authentic thermal printer look */
-  font-family: var(--receipt-font);
-  font-size: 11px;
-  line-height: 1.3;
-  margin: 0;
-  padding: 0;
   color: var(--receipt-text);
-  background: var(--receipt-bg);
-  text-align: left;
-  white-space: pre;
-  word-wrap: break-word;
+  font-family: var(--receipt-font);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 2rem 1.75rem;
+}
+
+.receipt-title {
+  margin: 0 0 1.25rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.receipt-shop-block {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.receipt-shop-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.receipt-shop-address {
+  font-size: 0.8rem;
+  color: var(--receipt-muted);
+  margin-top: 0.15rem;
+}
+
+.receipt-cashier-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 0.6rem;
+}
+
+.receipt-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--receipt-muted);
+  margin-bottom: 0.2rem;
+}
+
+.receipt-meta-row.receipt-meta-value {
+  color: var(--receipt-text);
+  font-weight: 600;
+  margin-bottom: 0.9rem;
+}
+
+.receipt-line-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-bottom: 0.6rem;
+}
+
+.receipt-line-label {
+  color: var(--receipt-muted);
+}
+
+.receipt-line-value {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.receipt-datetime-input {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--receipt-text);
+  text-align: right;
+  padding: 0;
+}
+
+.receipt-datetime-input:focus {
+  outline: 1px dashed #667eea;
+  outline-offset: 2px;
+}
+
+.print-only {
+  display: none;
+}
+
+.receipt-divider {
+  border-top: 1px dashed #b5b5b5;
+  margin: 0.75rem 0;
+}
+
+.receipt-divider-strong {
+  border-top-width: 2px;
+  border-top-color: #8a8a8a;
+}
+
+.receipt-table-header {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--receipt-muted);
+  padding-bottom: 0.5rem;
+}
+
+.receipt-item-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.88rem;
+}
+
+.receipt-col-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.receipt-item-name {
+  font-weight: 600;
   overflow-wrap: break-word;
-  letter-spacing: 0.5px;
+  word-break: break-word;
 }
 
-.receipt-thermal::before {
-  /* Thermal paper edge effect */
-  content: '';
-  display: block;
-  height: 4px;
-  background: repeating-linear-gradient(
-    90deg,
-    #e8e8e8 0px,
-    #e8e8e8 2px,
-    transparent 2px,
-    transparent 4px
-  );
-  margin-bottom: 0.5rem;
+.receipt-item-desc {
+  font-size: 0.78rem;
+  color: var(--receipt-muted);
+  margin-top: 0.15rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
-.receipt-thermal::after {
-  /* Thermal paper bottom edge effect */
-  content: '';
-  display: block;
-  height: 4px;
-  background: repeating-linear-gradient(
-    90deg,
-    #e8e8e8 0px,
-    #e8e8e8 2px,
-    transparent 2px,
-    transparent 4px
-  );
-  margin-top: 0.5rem;
+.receipt-col-qty {
+  flex: 0 0 2.5rem;
+  text-align: center;
+}
+
+.receipt-col-price {
+  flex: 0 0 5.5rem;
+  text-align: right;
+}
+
+.receipt-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  padding: 0.35rem 0;
+}
+
+.receipt-total-grand {
+  font-weight: 800;
+  font-size: 1rem;
+  border-top: 1px dashed #b5b5b5;
+  margin-top: 0.35rem;
+  padding-top: 0.6rem;
+}
+
+.receipt-thank-you {
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.receipt-footer-brand {
+  font-size: 0.85rem;
+  color: var(--receipt-muted);
+  text-align: center;
 }
 
 /* Receipt Actions */
 .receipt-actions {
   display: flex;
   gap: 0.75rem;
-  width: 320px;
+  width: 380px;
+  max-width: 100%;
   justify-content: center;
 }
 
@@ -151,6 +275,10 @@
     display: none !important;
   }
 
+  .print-only {
+    display: inline;
+  }
+
   body {
     background: white;
     margin: 0;
@@ -164,24 +292,16 @@
     gap: 0;
   }
 
-  .receipt-thermal-wrapper {
+  .receipt-card {
     width: 100%;
-    max-width: 320px;
+    max-width: 380px;
     box-shadow: none;
-    padding: 0;
-    margin: 0;
     border-radius: 0;
-  }
-
-  .receipt-thermal {
-    font-size: 10px;
-    line-height: 1.25;
-  }
-
-  /* Adjust margins for print */
-  @page {
-    size: 58mm auto;
     margin: 0;
+  }
+
+  @page {
+    margin: 12mm;
   }
 }
 
@@ -191,18 +311,13 @@
     padding: 1rem;
   }
 
-  .receipt-thermal-wrapper {
+  .receipt-card {
     width: 100%;
-    max-width: 320px;
-  }
-
-  .receipt-thermal {
-    font-size: 10px;
+    padding: 1.5rem 1.25rem;
   }
 
   .receipt-actions {
     width: 100%;
-    max-width: 320px;
   }
 
   .receipt-print-btn,
@@ -212,25 +327,12 @@
   }
 }
 
-/* Thermal Paper Effect */
-.receipt-thermal-wrapper::before {
-  content: '';
-  display: block;
-  height: 8px;
-  background: linear-gradient(90deg, #f0f0f0 0%, #ffffff 50%, #f0f0f0 100%);
-  margin-bottom: 0.5rem;
-}
-
-/* Dark mode support */
+/* Dark mode support: the card always renders like printed paper */
 @media (prefers-color-scheme: dark) {
-  .receipt-thermal-wrapper {
+  .receipt-card {
     background: #fafafa;
+    color: #1a1a1a;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), inset 0 0 1px rgba(255, 255, 255, 0.1);
-  }
-
-  .receipt-thermal {
-    background: #fafafa;
-    color: #000;
   }
 
   .receipt-page {

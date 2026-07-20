@@ -62,6 +62,7 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
         items: items.map(item => ({
           productId: item.productId,
           name: item.product.name,
+          description: item.product.description,
           sku: item.product.sku,
           quantity: item.quantity,
           unitPrice: item.unit_price,
@@ -116,6 +117,7 @@ export async function completeSale(params: CompleteSaleParams): Promise<ReceiptD
     items: items.map(item => ({
       productId: item.productId,
       name: item.product.name,
+      description: item.product.description,
       sku: item.product.sku,
       quantity: item.quantity,
       unitPrice: item.unit_price,

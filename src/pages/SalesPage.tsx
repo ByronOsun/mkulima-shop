@@ -50,6 +50,7 @@ export default function SalesPage({ onOpenReceipt }: SalesPageProps) {
     items: (sale.items || []).map(item => ({
       productId: item.productId,
       name: item.product?.name || 'Unknown Item',
+      description: item.product?.description,
       sku: item.product?.sku || '',
       quantity: item.quantity,
       unitPrice: item.unit_price,

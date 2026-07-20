@@ -17,6 +17,7 @@ export default function AddProductForm({
   onClose,
 }: AddProductFormProps) {
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [category, setCategory] = useState(categories[0]?.name || '');
   const [buyingPrice, setBuyingPrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
@@ -74,13 +75,14 @@ export default function AddProductForm({
         unit_price: Math.round(parseFloat(sellingPrice)),
         quantity_in_stock: finalQuantity,
         sku: `SKU-${Date.now()}`,
-        description: '',
+        description: description.trim(),
         image_url: '',
         reorder_level: Math.max(Math.round(finalQuantity * 0.2), 1),
       });
 
       onProductAdded(newProduct);
       setName('');
+      setDescription('');
       setBuyingPrice('');
       setSellingPrice('');
       setQuantity('');
@@ -111,6 +113,18 @@ export default function AddProductForm({
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g., Dairy Meal 50kg"
+              disabled={loading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">Description</label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Product description (optional)"
+              rows={3}
               disabled={loading}
             />
           </div>

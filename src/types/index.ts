@@ -95,6 +95,7 @@ export interface FinanceExpense {
 export interface ReceiptItem {
   productId: string;
   name: string;
+  description?: string;
   sku: string;
   quantity: number;
   unitPrice: number;
