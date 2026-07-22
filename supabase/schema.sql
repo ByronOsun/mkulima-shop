@@ -19,6 +19,7 @@ create table if not exists public.products (
   name text not null,
   category text not null,
   sku text not null unique,
+  barcode text,
   description text,
   unit_price numeric(12,2) not null check (unit_price >= 0),
   quantity_in_stock integer not null default 0 check (quantity_in_stock >= 0),
@@ -82,6 +83,7 @@ alter table public.products
   add column if not exists name text,
   add column if not exists category text,
   add column if not exists sku text,
+  add column if not exists barcode text,
   add column if not exists description text,
   add column if not exists unit_price numeric(12,2) not null default 0,
   add column if not exists quantity_in_stock integer not null default 0,
@@ -127,6 +129,7 @@ create index if not exists idx_sale_items_product_id on public.sale_items(produc
 create index if not exists idx_stock_movements_product_id on public.stock_movements(product_id);
 create index if not exists idx_stock_movements_created_at on public.stock_movements(created_at desc);
 create unique index if not exists idx_products_sku_unique on public.products(sku);
+create unique index if not exists idx_products_barcode_unique on public.products(barcode) where barcode is not null;
 create unique index if not exists idx_categories_name_unique on public.categories(name);
 
 do $$

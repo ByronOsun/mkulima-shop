@@ -3,6 +3,7 @@ import { Product, Category } from '../types';
 import { supabaseService } from '../services/supabase';
 import AddProductForm from '../components/AddProductForm';
 import EditProductModal from '../components/EditProductModal';
+import InventoryValueModal from '../components/InventoryValueModal';
 import '../styles/InventoryPage.css';
 
 interface InventoryPageProps {
@@ -17,6 +18,7 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showValueModal, setShowValueModal] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -81,7 +83,8 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.barcode ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const lowStockProducts = filteredProducts.filter(
@@ -109,6 +112,13 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
           >
             <BarcodeIcon /> Barcode Labels
           </button>
+          <button
+            className="btn-inventory-value"
+            onClick={() => setShowValueModal(true)}
+            title="View total inventory value"
+          >
+            📊 Inventory Value
+          </button>
         </div>
       </div>
 
@@ -117,7 +127,7 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
       <div className="search-section">
         <input
           type="text"
-          placeholder="Search by name or SKU..."
+          placeholder="Search by name, SKU, or barcode..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           className="search-input"
@@ -140,7 +150,10 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
               <tr key={product.id} className={
                 product.quantity_in_stock <= product.reorder_level ? 'low-stock' : ''
               }>
-                <td className="sku-col">{product.sku}</td>
+                <td className="sku-col">
+                  {product.sku}
+                  {product.barcode && <p className="barcode-sub">{product.barcode}</p>}
+                </td>
                 <td>
                   <strong>{product.name}</strong>
                   {product.description && (
@@ -204,6 +217,14 @@ export default function InventoryPage({ onShowBarcodes }: InventoryPageProps) {
           categories={categories}
           onSave={handleEditProduct}
           onClose={() => setEditingProduct(null)}
+        />
+      )}
+
+      {showValueModal && (
+        <InventoryValueModal
+          products={products}
+          categories={categories}
+          onClose={() => setShowValueModal(false)}
         />
       )}
     </div>

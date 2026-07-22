@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Product, Category } from '../types';
+import BarcodeScannerModal from './BarcodeScannerModal';
 import '../styles/EditProductModal.css';
 
 interface EditProductModalProps {
@@ -20,6 +21,7 @@ export default function EditProductModal({
     description: product.description || '',
     category: product.category || '',
     sku: product.sku,
+    barcode: product.barcode || '',
     buying_price: product.buying_price ?? 0,
     unit_price: product.unit_price,
     quantity_in_stock: product.quantity_in_stock,
@@ -27,6 +29,7 @@ export default function EditProductModal({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -75,11 +78,17 @@ export default function EditProductModal({
       setLoading(true);
       await onSave({
         ...formData,
+        barcode: formData.barcode.trim() || null,
         buying_price: formData.buying_price,
         unit_price: Math.round(formData.unit_price),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update product');
+      const message = err instanceof Error ? err.message : 'Failed to update product';
+      setError(
+        /barcode/i.test(message) && /duplicate|unique/i.test(message)
+          ? 'That barcode is already used by another product'
+          : message
+      );
     } finally {
       setLoading(false);
     }
@@ -138,21 +147,50 @@ export default function EditProductModal({
             </div>
 
             <div className="form-group">
-              <label htmlFor="category">Category</label>
-              <select
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-              >
-                <option value="">Select a category</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.name}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+              <label htmlFor="barcode">Barcode</label>
+              <div className="barcode-input-row">
+                <input
+                  id="barcode"
+                  type="text"
+                  name="barcode"
+                  value={formData.barcode}
+                  onChange={handleChange}
+                  placeholder="Scan or enter barcode"
+                />
+                <button
+                  type="button"
+                  className="barcode-scan-btn"
+                  onClick={() => setShowScanner(true)}
+                >
+                  Scan
+                </button>
+              </div>
             </div>
+          </div>
+
+          {showScanner && (
+            <BarcodeScannerModal
+              title="Scan Product Barcode"
+              onCapture={code => setFormData(prev => ({ ...prev, barcode: code }))}
+              onClose={() => setShowScanner(false)}
+            />
+          )}
+
+          <div className="form-group">
+            <label htmlFor="category">Category</label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+            >
+              <option value="">Select a category</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-row">

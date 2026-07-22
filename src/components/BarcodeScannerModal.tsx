@@ -12,9 +12,11 @@ declare global {
 }
 
 interface Props {
-  products: Product[];
-  onAddToCart: (product: Product, quantity: number) => void;
+  products?: Product[];
+  onAddToCart?: (product: Product, quantity: number) => void;
+  onCapture?: (code: string) => void;
   onClose: () => void;
+  title?: string;
 }
 
 interface Toast {
@@ -25,7 +27,7 @@ interface Toast {
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(n);
 
-export default function BarcodeScannerModal({ products, onAddToCart, onClose }: Props) {
+export default function BarcodeScannerModal({ products, onAddToCart, onCapture, onClose, title }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number>(0);
@@ -38,8 +40,11 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
   // Always-current refs so the tick loop (created once) never uses stale closures
   const productsRef = useRef(products);
   const onAddToCartRef = useRef(onAddToCart);
+  const onCaptureRef = useRef(onCapture);
+  const handleCloseRef = useRef<() => void>(() => {});
   useEffect(() => { productsRef.current = products; }, [products]);
   useEffect(() => { onAddToCartRef.current = onAddToCart; }, [onAddToCart]);
+  useEffect(() => { onCaptureRef.current = onCapture; }, [onCapture]);
 
   const [unavailable, setUnavailable] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -58,6 +63,7 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
     stopStream();
     onClose();
   }, [stopStream, onClose]);
+  useEffect(() => { handleCloseRef.current = handleClose; }, [handleClose]);
 
   const showToast = useCallback((t: Toast, durationMs: number) => {
     setToast(t);
@@ -78,13 +84,22 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
     scanActiveRef.current = false;
 
     const code = raw.trim();
+
+    if (onCaptureRef.current) {
+      playBeep('success');
+      onCaptureRef.current(code);
+      handleCloseRef.current();
+      return;
+    }
+
     const normalized = code.toLowerCase();
-    const product = productsRef.current.find(p =>
+    const product = (productsRef.current ?? []).find(p =>
+      p.barcode?.toLowerCase() === normalized ||
       p.sku?.toLowerCase() === normalized ||
       p.name.toLowerCase() === normalized
     );
 
-    if (product) {
+    if (product && onAddToCartRef.current) {
       playBeep('success');
       onAddToCartRef.current(product, 1);
       showToast({ type: 'added', message: `${product.name}  ${fmt(product.unit_price)}` }, 2200);
@@ -173,7 +188,7 @@ export default function BarcodeScannerModal({ products, onAddToCart, onClose }: 
 
         <div className="bsm-header">
           <span className="bsm-title">
-            <BarcodeIcon /> Scan Product
+            <BarcodeIcon /> {title || 'Scan Product'}
           </span>
           <button className="bsm-close" onClick={handleClose} aria-label="Close scanner">✕</button>
         </div>

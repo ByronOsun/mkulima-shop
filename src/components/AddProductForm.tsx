@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Category, Product } from '../types';
 import { supabaseService } from '../services/supabase';
+import BarcodeScannerModal from './BarcodeScannerModal';
 import '../styles/AddProductForm.css';
 
 interface AddProductFormProps {
@@ -17,6 +18,8 @@ export default function AddProductForm({
   onClose,
 }: AddProductFormProps) {
   const [name, setName] = useState('');
+  const [barcode, setBarcode] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState(categories[0]?.name || '');
   const [buyingPrice, setBuyingPrice] = useState('');
@@ -75,6 +78,7 @@ export default function AddProductForm({
         unit_price: Math.round(parseFloat(sellingPrice)),
         quantity_in_stock: finalQuantity,
         sku: `SKU-${Date.now()}`,
+        barcode: barcode.trim() || null,
         description: description.trim(),
         image_url: '',
         reorder_level: Math.max(Math.round(finalQuantity * 0.2), 1),
@@ -82,13 +86,19 @@ export default function AddProductForm({
 
       onProductAdded(newProduct);
       setName('');
+      setBarcode('');
       setDescription('');
       setBuyingPrice('');
       setSellingPrice('');
       setQuantity('');
       setQuantityPerDozen('12');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add product');
+      const message = err instanceof Error ? err.message : 'Failed to add product';
+      setError(
+        /barcode/i.test(message) && /duplicate|unique/i.test(message)
+          ? 'That barcode is already used by another product'
+          : message
+      );
     } finally {
       setLoading(false);
     }
@@ -116,6 +126,37 @@ export default function AddProductForm({
               disabled={loading}
             />
           </div>
+
+          <div className="form-group">
+            <label htmlFor="barcode">Barcode</label>
+            <div className="barcode-input-row">
+              <input
+                id="barcode"
+                type="text"
+                value={barcode}
+                onChange={e => setBarcode(e.target.value)}
+                placeholder="Scan or enter the manufacturer's barcode"
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="barcode-scan-btn"
+                onClick={() => setShowScanner(true)}
+                disabled={loading}
+              >
+                Scan
+              </button>
+            </div>
+            <small>Optional — lets you scan this exact product into the cart at checkout</small>
+          </div>
+
+          {showScanner && (
+            <BarcodeScannerModal
+              title="Scan Product Barcode"
+              onCapture={code => setBarcode(code)}
+              onClose={() => setShowScanner(false)}
+            />
+          )}
 
           <div className="form-group">
             <label htmlFor="description">Description</label>

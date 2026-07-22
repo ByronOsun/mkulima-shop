@@ -137,6 +137,27 @@
   margin-bottom: 1rem;
 }
 
+.barcode-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.barcode-input-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.barcode-scan-btn {
+  padding: 0 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .modal-footer {
   display: flex;
   gap: 0.75rem;

@@ -48,6 +48,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
         lastKeyTime = 0;
         if (code.length >= 3) {
           const match = products.find(p =>
+            p.barcode?.toLowerCase() === code.toLowerCase() ||
             p.sku?.toLowerCase() === code.toLowerCase() ||
             p.name.toLowerCase() === code.toLowerCase()
           );
@@ -152,7 +153,7 @@ export default function POSPage({ onCheckoutSuccess }: POSPageProps) {
 
   const searchedProducts = products.filter(product => {
     if (!normalizedSearch) return true;
-    return [product.name, product.sku, product.description, product.category]
+    return [product.name, product.sku, product.barcode, product.description, product.category]
       .filter(Boolean)
       .some(value => value!.toLowerCase().includes(normalizedSearch));
   });

@@ -74,6 +74,27 @@
   background: #374151;
 }
 
+.btn-inventory-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.55rem 1.2rem;
+  background: #0f766e;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btn-inventory-value:hover {
+  background: #115e59;
+}
+
 .inventory-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -212,6 +233,13 @@
   font-size: 0.85rem;
   color: #666;
   margin: 0;
+}
+
+.barcode-sub {
+  font-size: 0.78rem;
+  color: #888;
+  margin: 0.15rem 0 0;
+  font-family: monospace;
 }
 
 .quantity {
