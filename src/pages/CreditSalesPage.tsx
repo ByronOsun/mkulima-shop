@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Sale } from '../types';
 import { supabaseService, supabase, getCurrentTenant } from '../services/supabase';
 import { printOrShareReceipt } from '../services/pdf';
@@ -10,6 +10,7 @@ export default function CreditSalesPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [paymentAmount, setPaymentAmount] = useState<string>('');
   const [paymentMethodForRecord, setPaymentMethodForRecord] = useState<'cash' | 'mobile_money'>('cash');
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -21,6 +22,12 @@ export default function CreditSalesPage() {
     remaining: number;
     paidAt: string;
   } | null>(null);
+
+  // Tracks the most recently started fetch so an out-of-order response
+  // (e.g. a realtime-triggered reload racing the post-payment reload)
+  // can't overwrite the list with stale data.
+  const loadRequestId = useRef(0);
+  const hasLoadedOnce = useRef(false);
 
   useEffect(() => {
     void loadCreditSales();
@@ -91,14 +98,20 @@ export default function CreditSalesPage() {
   }, []);
 
   const loadCreditSales = async () => {
+    const requestId = ++loadRequestId.current;
+    // Only show the blocking spinner on the very first load - background
+    // refreshes (polling/realtime/post-payment) should update silently so
+    // the list doesn't blank out and "flicker" on every event.
+    if (!hasLoadedOnce.current) setLoading(true);
     try {
-      setLoading(true);
       setError(null);
       // Get all sales and filter for credit method ones with status pending
       const allSales = await supabaseService.getSalesBetweenDates(
         new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         new Date().toISOString().split('T')[0]
       );
+      // A newer request has since started - discard this stale response.
+      if (requestId !== loadRequestId.current) return;
       const creditOnlySales = allSales.filter((sale) => {
         if (sale.payment_method !== 'credit') return false;
         const paid = sale.amount_paid || 0;
@@ -108,11 +121,25 @@ export default function CreditSalesPage() {
       });
       setCreditSales(creditOnlySales);
     } catch (err) {
+      if (requestId !== loadRequestId.current) return;
       setError(err instanceof Error ? err.message : 'Failed to load credit sales');
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestId.current) {
+        hasLoadedOnce.current = true;
+        setLoading(false);
+      }
     }
   };
+
+  const filteredCreditSales = (() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return creditSales;
+    return creditSales.filter((sale) => {
+      const name = (sale.customer_name || '').toLowerCase();
+      const contact = (sale.customer_contact || '').toLowerCase();
+      return name.includes(query) || contact.includes(query);
+    });
+  })();
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('en-KE', {
@@ -294,13 +321,34 @@ ${padCenter('='.repeat(40), 40)}`;
       <div className="credit-content">
         <div className="sales-list-panel">
           <h3>Pending Credit Sales ({creditSales.length})</h3>
+          <div className="search-bar">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search by customer name or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           {loading ? (
             <div className="loading">Loading credit sales...</div>
-          ) : creditSales.length === 0 ? (
-            <div className="empty-state">No pending credit sales</div>
+          ) : filteredCreditSales.length === 0 ? (
+            <div className="empty-state">
+              {creditSales.length === 0 ? 'No pending credit sales' : 'No creditors match your search'}
+            </div>
           ) : (
             <div className="sales-list">
-              {creditSales.map((sale) => {
+              {filteredCreditSales.map((sale) => {
                 const amountPaid = sale.amount_paid || 0;
                 const balance = sale.total_amount - amountPaid;
                 const isSelected = selectedSale?.id === sale.id;

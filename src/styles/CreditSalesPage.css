@@ -92,6 +92,45 @@
   font-weight: 600;
 }
 
+.search-bar {
+  position: relative;
+  padding: 10px 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.search-input {
+  width: 100%;
+  padding: 9px 32px 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 23px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px;
+  line-height: 1;
+}
+
+.search-clear-btn:hover {
+  color: #333;
+}
+
 .sales-list {
   flex: 1;
   overflow-y: auto;

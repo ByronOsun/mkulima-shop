@@ -539,6 +539,7 @@ export const supabaseService = {
             .gte('sale_date', `${startDate}T00:00:00`)
             .lte('sale_date', `${endDate}T23:59:59`)
             .order('sale_date', { ascending: false })
+            .order('id', { ascending: false })
         );
         if (!error && data) {
           const sales = data as Sale[];

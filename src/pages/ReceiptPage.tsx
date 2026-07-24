@@ -66,11 +66,12 @@ export default function ReceiptPage({ receipt, onBackToPos }: ReceiptPageProps) 
   const shopAddress = receipt.tenantConfig?.address || '';
   const shopPhone = receipt.tenantConfig?.phone ? `Tel: ${receipt.tenantConfig.phone}` : '';
 
-  // VAT is added on top of the paid amount for display only (frontend-only,
-  // does not change the amount actually recorded/charged for the sale).
-  const subtotal = receipt.totalAmount;
-  const vatAmount = subtotal * VAT_RATE;
-  const totalPaid = subtotal + vatAmount;
+  // VAT is shown as a component already included within the charged amount
+  // (frontend-only breakdown; does not change the amount actually
+  // recorded/charged for the sale).
+  const totalPaid = receipt.totalAmount;
+  const vatAmount = (totalPaid * VAT_RATE) / (1 + VAT_RATE);
+  const subtotal = totalPaid - vatAmount;
 
   const paymentLabel = PAYMENT_METHOD_LABELS[receipt.paymentMethod] || receipt.paymentMethod;
   const receiptNumberDisplay = `#${receipt.receiptNumber.toString().padStart(6, '0')}`;
