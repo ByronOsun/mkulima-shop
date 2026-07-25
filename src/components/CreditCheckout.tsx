@@ -146,6 +146,7 @@ export default function CreditCheckout({ items, onBack, onCheckoutSuccess }: Cre
 
   const handleCompleteSale = async () => {
     if (items.length === 0) { setError('Cart is empty'); return; }
+    if (!customerName.trim()) { setError('Customer name is required'); return; }
     try {
       setProcessingPayment(true);
       setError(null);
@@ -237,7 +238,7 @@ export default function CreditCheckout({ items, onBack, onCheckoutSuccess }: Cre
           )}
 
           <div className="credit-field">
-            <label htmlFor="cc-customer-name">Customer Name</label>
+            <label htmlFor="cc-customer-name">Customer Name <span className="required-asterisk">*</span></label>
             <input
               id="cc-customer-name"
               type="text"
@@ -246,6 +247,7 @@ export default function CreditCheckout({ items, onBack, onCheckoutSuccess }: Cre
               onChange={e => setCustomerName(e.target.value)}
               className="credit-input"
               disabled={processingPayment}
+              required
             />
           </div>
 
@@ -297,7 +299,7 @@ export default function CreditCheckout({ items, onBack, onCheckoutSuccess }: Cre
           <button
             className="checkout-btn"
             onClick={handleCompleteSale}
-            disabled={processingPayment || items.length === 0}
+            disabled={processingPayment || items.length === 0 || !customerName.trim()}
           >
             {processingPayment ? 'Processing...' : 'Complete Sale'}
           </button>

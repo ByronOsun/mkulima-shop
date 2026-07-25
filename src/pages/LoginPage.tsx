@@ -93,13 +93,14 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="login-card">
+      <div className="login-card pin-screen">
         <div className="login-header">
           <div className="login-logo" aria-hidden="true">&#x1F33E;</div>
           <p>POS System</p>
+          <h1 className="pin-screen-title">Enter PIN</h1>
         </div>
 
-        <form className="login-form" onSubmit={(e) => e.preventDefault()}>
+        <form className="login-form pin-screen-form" onSubmit={(e) => e.preventDefault()}>
           {(loading || biometricWorking)
             ? <div className="pin-loading">{biometricWorking ? 'Verifying fingerprint…' : 'Verifying…'}</div>
             : displayError && <div className="form-error">{displayError}</div>
@@ -123,23 +124,6 @@ export default function LoginPage() {
                 {digit}
               </button>
             ))}
-            <button
-              type="button"
-              className="keypad-btn keypad-btn-secondary"
-              onClick={handleKeypadBackspace}
-              disabled={loading || biometricWorking}
-              aria-label="Backspace"
-            >
-              &#x232B;
-            </button>
-            <button
-              type="button"
-              className="keypad-btn"
-              onClick={() => handleKeypadDigit('0')}
-              disabled={loading || biometricWorking}
-            >
-              0
-            </button>
             {isBiometricRegistered ? (
               <button
                 type="button"
@@ -148,7 +132,7 @@ export default function LoginPage() {
                 disabled={loading || biometricWorking}
                 aria-label="Login with fingerprint"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: '1.6rem', height: '1.6rem' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 1a9 9 0 0 1 9 9" />
                   <path d="M3.6 9a9 9 0 0 1 1.5-4" />
                   <path d="M12 5a5 5 0 0 1 5 5c0 4.5-2 7-5 9" />
@@ -160,6 +144,27 @@ export default function LoginPage() {
             ) : (
               <span className="keypad-spacer" aria-hidden="true" />
             )}
+            <button
+              type="button"
+              className="keypad-btn"
+              onClick={() => handleKeypadDigit('0')}
+              disabled={loading || biometricWorking}
+            >
+              0
+            </button>
+            <button
+              type="button"
+              className="keypad-btn keypad-btn-secondary"
+              onClick={handleKeypadBackspace}
+              disabled={loading || biometricWorking}
+              aria-label="Backspace"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+                <line x1="18" y1="9" x2="12" y2="15" />
+                <line x1="12" y1="9" x2="18" y2="15" />
+              </svg>
+            </button>
           </div>
         </form>
       </div>

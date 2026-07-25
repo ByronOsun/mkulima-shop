@@ -1,29 +1,44 @@
 /* Minimal mobile-first login page */
 
 .login-page {
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  overflow: hidden;
 }
 
 .login-card {
-  width: min(100%, 360px);
+  width: min(100%, 420px);
+  margin: 0 auto;
   background: #fff;
-  border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Full-screen PIN entry: card fills the viewport edge-to-edge (no width
+   cap, no side margins) so the white background covers the whole page
+   with no gradient showing through, and the keypad spreads out to use
+   the available vertical space on both short and tall phone screens. */
+.pin-screen {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  height: 100%;
+  justify-content: flex-start;
+  padding: clamp(1.25rem, 5vh, 2.5rem) 1.5rem clamp(1.5rem, 4vh, 2.5rem);
 }
 
 .login-header {
   text-align: center;
   margin-bottom: 1.5rem;
+  flex-shrink: 0;
 }
 
 .login-logo {
-  font-size: 2.5rem;
+  font-size: clamp(2rem, 8vh, 2.5rem);
   line-height: 1;
   margin-bottom: 0.5rem;
 }
@@ -40,9 +55,24 @@
   font-size: 0.92rem;
 }
 
+.pin-screen-title {
+  margin: 0.6rem 0 0;
+  font-size: clamp(1.25rem, 4vh, 1.6rem);
+  font-weight: 700;
+  color: #243047;
+}
+
 .login-form {
   display: grid;
   gap: 1rem;
+}
+
+.pin-screen-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 4vh, 2rem);
+  min-height: 0;
 }
 
 .form-group {
@@ -99,18 +129,15 @@
 
 .pin-dots-container {
   display: flex;
-  justify-content: space-evenly;
+  justify-content: center;
   align-items: center;
-  padding: 1.2rem 0.5rem;
-  background: #f9fafb;
-  border: 1.5px solid #d8dbe3;
-  border-radius: 10px;
-  min-height: 68px;
+  gap: clamp(0.75rem, 3vw, 1.1rem);
+  flex-shrink: 0;
 }
 
 .pin-dot {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #d8dbe3;
   transition: background 0.18s ease, transform 0.15s ease, box-shadow 0.15s ease;
@@ -119,7 +146,7 @@
 
 .pin-dot.filled {
   background: #667eea;
-  transform: scale(1.15);
+  transform: scale(1.25);
   box-shadow: 0 0 0 4px rgba(107, 124, 255, 0.18);
 }
 
@@ -136,41 +163,54 @@
 }
 
 .pin-keypad {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.9rem;
-  margin-top: 0.6rem;
+  grid-template-rows: repeat(4, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: clamp(0.25rem, 2vh, 0.75rem) 0;
+  min-height: 0;
 }
 
 .keypad-btn {
-  border: 1.5px solid #d8dbe3;
-  border-radius: 12px;
-  padding: 1.1rem 0;
-  min-height: 60px;
-  font-size: 1.4rem;
-  font-weight: 600;
+  border: none;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  width: clamp(76px, 24vw, 108px);
+  max-height: 100%;
+  font-size: clamp(1.6rem, 7vw, 2.1rem);
+  font-weight: 500;
   color: #243047;
-  background: #f9fafb;
+  background: transparent;
   cursor: pointer;
   touch-action: manipulation;
-  transition: background 0.15s ease, transform 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.keypad-btn svg {
+  width: 42%;
+  height: 42%;
 }
 
 .keypad-btn:hover:not(:disabled) {
-  background: #eef0f5;
+  background: #f3f4f8;
 }
 
 .keypad-btn:active:not(:disabled) {
-  transform: scale(0.96);
+  background: #e7e9f5;
+  transform: scale(0.94);
 }
 
 .keypad-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .keypad-btn-secondary {
-  font-size: 1.05rem;
   color: #6b7280;
 }
 
@@ -223,59 +263,25 @@
   background: #f3f4f6;
 }
 
-@media (max-width: 480px) {
-  .login-page {
-    padding: 0.75rem;
+/* Short screens (small phones in landscape, compact devices): tighten the
+   vertical rhythm so all four keypad rows still fit without scrolling. */
+@media (max-height: 640px) {
+  .pin-screen {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
   }
 
-  .login-card {
-    padding: 1.25rem;
-    border-radius: 14px;
-  }
-
-  .login-header h1 {
-    font-size: 1.3rem;
-  }
-
-  .form-group input,
-  .login-button {
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
-  }
-
-  .pin-keypad {
-    gap: 0.75rem;
+  .login-header {
+    margin-bottom: 0.75rem;
   }
 
   .keypad-btn {
-    min-height: 56px;
-    font-size: 1.3rem;
+    width: clamp(60px, 20vw, 84px);
   }
 }
 
-/* Responsive */
-@media (max-width: 640px) {
-  .login-card {
-    padding: 1.5rem;
-  }
-
+@media (max-width: 480px) {
   .login-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .login-logo {
-    font-size: 2.5rem;
-  }
-
-  .role-selector {
-    grid-template-columns: 1fr;
-  }
-
-  .demo-info {
-    font-size: 0.75rem;
-  }
-
-  .demo-item {
-    font-size: 0.75rem;
+    font-size: 1.3rem;
   }
 }

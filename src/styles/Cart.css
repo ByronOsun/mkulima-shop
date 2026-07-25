@@ -346,6 +346,10 @@
   color: var(--text);
 }
 
+.required-asterisk {
+  color: #e74c3c;
+}
+
 .credit-row {
   display: flex;
   gap: 0.75rem;
